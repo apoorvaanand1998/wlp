@@ -1,8 +1,10 @@
 module Main where
 
-import MyLib (testParsing)
+import MyLib (testParsing, z3Test)
 
 main :: IO ()
 main = do
   t <- testParsing
-  print t
+  z <- z3Test
+  --print t
+  print z
