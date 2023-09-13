@@ -1,6 +1,7 @@
-module MyLib (someFunc) where
+module MyLib where
 
--- import GCLParser.Parser
+import qualified GCLParser.Parser as GCL
+import qualified GCLParser.GCLDatatype as GCLD
 
-someFunc :: IO ()
-someFunc = putStrLn "someFunc"
+testParsing :: IO (GCL.ParseResult GCLD.Program)
+testParsing = GCL.parseGCLfile "examples/examples/minind.gcl"
