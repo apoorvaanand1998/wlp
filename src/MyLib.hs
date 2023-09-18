@@ -8,7 +8,7 @@ import qualified Data.Traversable as T
 import Z3.Monad
 
 testParsing :: IO (GCL.ParseResult GCLD.Program)
-testParsing = GCL.parseGCLfile "examples/examples/minind.gcl"
+testParsing = GCL.parseGCLfile "examples/examples/min.gcl"
 
 z3script :: Z3 (Maybe [Integer])
 z3script = do
