@@ -20,3 +20,7 @@ wlp (GCLD.Block _ s) post        = wlp s post
 -- TODO
 -- wlp (GCLD.DrefAssign _ _) post      = -- wtf
 -- wlp (GCLD.TryCatch _ _ _) _ = -- do we go with method 1 or 2?
+
+convertRepByExpr :: GCLD.Expr -> GCLD.Expr
+convertRepByExpr (GCLD.RepBy _ _ _) = undefined
+convertRepByExpr _                  = error "Non RepBy Expr trying to be substituted"
