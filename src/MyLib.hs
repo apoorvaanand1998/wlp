@@ -10,7 +10,7 @@ import Z3.Monad
 import Paths
 
 treeGCLfile :: Int -> FilePath -> IO (GCL.ParseResult (Tree Statement))
-treeGCLfile k = (fmap.fmap.fmap $ limitDepth k . programTree) GCL.parseGCLfile
+treeGCLfile k = (fmap.fmap.fmap $ limitDepth k . fst . programTree) GCL.parseGCLfile
 
 testParsing :: IO (GCL.ParseResult GCLD.Program)
 testParsing = GCL.parseGCLfile "examples/examples/min.gcl"
