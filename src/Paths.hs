@@ -14,8 +14,8 @@ data Statement
 instance Show Statement where
   show (SAssert expr) = unwords ["ASSERT", show expr]
   show (SAssume expr) = unwords ["ASSUME", show expr]
-  show (SAssign var expr) = unwords ["ASSIGN", var, show expr]
-  show (SAAssign arr idx expr) = unwords ["AASSIGN", arr, show idx, show expr]
+  show (SAssign var expr) = show (Assign var expr)
+  show (SAAssign arr idx expr) = show (AAssign arr idx expr)
 
 newtype Tree a = Tree [Node a] deriving (Semigroup, Monoid, Functor)
 data Node a = Node a (Tree a) deriving (Functor)
@@ -26,6 +26,7 @@ instance Show a => Show (Tree a) where
   show (Tree (n:ns)) = (("\n├── " ++) . intercalate "\n│   " . lines) (show n) ++ show (Tree ns)
 
 instance Show a => Show (Node a) where
+  show (Node x (Tree [n])) = show x ++ "\n" ++ show n
   show (Node x t) = show x ++ show t
 
 limitDepth :: Int -> Tree a -> Tree a
@@ -63,7 +64,7 @@ tree (While guard body) = do
   tloop <- tree (While guard body)
   let ttrue  = singleton (SAssume guard) |> tbody |> tloop
   let tfalse = singleton (SAssume (OpNeg guard))
-  pure (tfalse <> ttrue)
+  pure (ttrue <> tfalse)
 tree (Block [] stmt) = tree stmt
 tree (Block (VarDeclaration s _:xs) stmt) = do
   n <- fresh
