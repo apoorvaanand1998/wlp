@@ -13,7 +13,7 @@ treeGCLfile :: Int -> FilePath -> IO (GCL.ParseResult (Tree Statement))
 treeGCLfile k = (fmap.fmap.fmap $ limitDepth k . programTree) GCL.parseGCLfile
 
 testParsing :: IO (GCL.ParseResult GCLD.Program)
-testParsing = GCL.parseGCLfile "examples/examples/minind.gcl"
+testParsing = GCL.parseGCLfile "examples/examples/min.gcl"
 
 z3script :: Z3 (Maybe [Integer])
 z3script = do

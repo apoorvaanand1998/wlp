@@ -78,9 +78,9 @@ renameExpr :: String -> String -> Expr -> Expr
 renameExpr rep by (OpNeg expr) = OpNeg (renameExpr rep by expr)
 renameExpr rep by (Var var) | rep == var = Var by
                             | otherwise  = Var var
-renameExpr _ _ l@(LitI _)  = l
-renameExpr _ _ l@(LitB _)  = l
-renameExpr _ _ l@(LitNull) = l
+renameExpr _ _ (LitI i) = LitI i
+renameExpr _ _ (LitB b) = LitB b
+renameExpr _ _ LitNull  = LitNull
 renameExpr rep by (Parens expr) = Parens (renameExpr rep by expr)
 renameExpr rep by (ArrayElem expr1 expr2) = ArrayElem (renameExpr rep by expr1) (renameExpr rep by expr2)
 renameExpr rep by (BinopExpr op expr1 expr2) = BinopExpr op (renameExpr rep by expr1) (renameExpr rep by expr2)
