@@ -15,6 +15,7 @@ treeGCLfile k = (fmap.fmap.fmap $ limitDepth k . programTree) GCL.parseGCLfile
 testParsing :: IO (GCL.ParseResult GCLD.Program)
 testParsing = GCL.parseGCLfile "examples/examples/min.gcl"
 
+{-
 z3script :: Z3 (Maybe [Integer])
 z3script = do
   q1 <- mkFreshIntVar "q1"
@@ -56,3 +57,4 @@ z3Test = evalZ3 z3script >>= \mbSol ->
             case mbSol of
                 Nothing  -> error "No solution found."
                 Just sol -> putStr "Solution: " >> print sol
+-}                

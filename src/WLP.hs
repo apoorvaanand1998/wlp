@@ -32,7 +32,7 @@ repBy (GCLD.RepBy ln@GCLD.LitNull  _ (GCLD.RepBy {})) = ln
 repBy (GCLD.RepBy (GCLD.Parens pe) v (GCLD.RepBy _ i e)) = repBy (GCLD.RepBy pe v (GCLD.RepBy v i e))
 repBy (GCLD.RepBy (GCLD.ArrayElem ae ai) v (GCLD.RepBy _ i e)) = if v == ae && i == ai -- could crash if v/ae or i/ai need to be evaluated to be equal
                                                                  then e
-                                                                 else GCLD.ArrayElem ae ai -- going with this simple thing for now as suggested
+                                                                 else GCLD.ArrayElem ae ai -- but going with this simple approach for now as suggested
 repBy (GCLD.RepBy (GCLD.OpNeg ne) v (GCLD.RepBy _ i e))  = GCLD.OpNeg (repBy (GCLD.RepBy ne v (GCLD.RepBy v i e)))
 repBy (GCLD.RepBy (GCLD.BinopExpr op be1 be2) v (GCLD.RepBy _ i e)) = GCLD.BinopExpr op (repBy (GCLD.RepBy be1 v (GCLD.RepBy v i e)))
                                                                                         (repBy (GCLD.RepBy be2 v (GCLD.RepBy v i e)))
@@ -60,14 +60,12 @@ repBy (GCLD.RepBy (GCLD.ArrayElem ae ai) v e) = GCLD.ArrayElem (repBy (GCLD.RepB
 repBy (GCLD.RepBy (GCLD.OpNeg ne) v e)  = GCLD.OpNeg (repBy (GCLD.RepBy ne v e))
 repBy (GCLD.RepBy (GCLD.BinopExpr op be1 be2) v e) = GCLD.BinopExpr op (repBy (GCLD.RepBy be1 v e))
                                                                        (repBy (GCLD.RepBy be2 v e))
-repBy (GCLD.RepBy fa@(GCLD.Forall fv fe) vr@(GCLD.Var v) e) = 
-                                                           if fv /= v 
-                                                           then GCLD.Forall fv (repBy (GCLD.RepBy fe vr e))
-                                                           else fa
-repBy (GCLD.RepBy ex@(GCLD.Exists ev ee) vr@(GCLD.Var v) e) = 
-                                                           if ev /= v 
-                                                           then GCLD.Exists ev (repBy (GCLD.RepBy ee vr e))
-                                                           else ex
+repBy (GCLD.RepBy fa@(GCLD.Forall fv fe) vr@(GCLD.Var v) e) = if fv /= v 
+                                                              then GCLD.Forall fv (repBy (GCLD.RepBy fe vr e))
+                                                              else fa
+repBy (GCLD.RepBy ex@(GCLD.Exists ev ee) vr@(GCLD.Var v) e) = if ev /= v 
+                                                              then GCLD.Exists ev (repBy (GCLD.RepBy ee vr e))
+                                                              else ex
 repBy (GCLD.RepBy (GCLD.SizeOf se) v e) = GCLD.SizeOf (repBy (GCLD.RepBy se v e))
 repBy (GCLD.RepBy (GCLD.RepBy re1 re2 re3) v e) = GCLD.RepBy (repBy (GCLD.RepBy re1 v e))
                                                              (repBy (GCLD.RepBy re2 v e))
@@ -75,7 +73,7 @@ repBy (GCLD.RepBy (GCLD.RepBy re1 re2 re3) v e) = GCLD.RepBy (repBy (GCLD.RepBy 
 repBy (GCLD.RepBy (GCLD.Cond g e1 e2) v e) = GCLD.Cond (repBy (GCLD.RepBy g v e))
                                                        (repBy (GCLD.RepBy e1 v e))
                                                        (repBy (GCLD.RepBy e2 v e))
+
 repBy (GCLD.RepBy (GCLD.NewStore _) _ _)    = error "NewStore not implemented in repBy"
 repBy (GCLD.RepBy (GCLD.Dereference _) _ _) = error "Dereference not implemented in repBy"                                                       
 repBy other                                 = other
-
