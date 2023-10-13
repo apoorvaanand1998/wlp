@@ -2,6 +2,7 @@ module Paths (Tree(..), Statement(..), programTree, limitDepth) where
 
 import GCLParser.GCLDatatype
 import Data.List (intercalate)
+import Control.Monad.State
 
 -- Probably need to annotate this eventually to have useful output
 data Statement
@@ -13,8 +14,8 @@ data Statement
 instance Show Statement where
   show (SAssert expr) = unwords ["ASSERT", show expr]
   show (SAssume expr) = unwords ["ASSUME", show expr]
-  show (SAssign var expr) = unwords ["ASSIGN", var, show expr]
-  show (SAAssign arr idx expr) = unwords ["AASSIGN", arr, show idx, show expr]
+  show (SAssign var expr) = show (Assign var expr)
+  show (SAAssign arr idx expr) = show (AAssign arr idx expr)
 
 newtype Tree a = Tree [Node a] deriving (Semigroup, Monoid, Functor)
 data Node a = Node a (Tree a) deriving (Functor)
@@ -25,6 +26,7 @@ instance Show a => Show (Tree a) where
   show (Tree (n:ns)) = (("\n├── " ++) . intercalate "\n│   " . lines) (show n) ++ show (Tree ns)
 
 instance Show a => Show (Node a) where
+  show (Node x (Tree [n])) = show x ++ "\n" ++ show n
   show (Node x t) = show x ++ show t
 
 limitDepth :: Int -> Tree a -> Tree a
@@ -32,30 +34,49 @@ limitDepth 0 _ = Tree []
 limitDepth k (Tree xs) = Tree (map f xs)
   where f (Node n ns) = Node n (limitDepth (k-1) ns)
 
-programTree :: Program -> Tree Statement
-programTree Program { input, output, stmt } = tree 0 (Block (input ++ output) stmt) mempty
+programTree :: Program -> (Tree Statement, Int)
+programTree Program { input, output, stmt } = runState (tree (Block (input ++ output) stmt)) 0
 
--- Insert a new root above the current root of the tree
-(|>) :: a -> Tree a -> Tree a
-x |> t = Tree [Node x t]
+(|>) :: Tree a -> Tree a -> Tree a
+Tree [] |> t2 = t2
+Tree ns |> t2 = Tree $ fmap (\(Node x t) -> Node x (t |> t2)) ns
 
-tree :: Int -> Stmt -> Tree Statement -> Tree Statement
-tree _ Skip = id
-tree _ (Assert cond) = (SAssert cond |>)
-tree _ (Assume cond) = (SAssume cond |>)
-tree _ (Assign var expr) = (SAssign var expr |>)
-tree _ (AAssign arr idx expr) = (SAAssign arr idx expr |>)
-tree _ (DrefAssign _var _expr) = error "out of scope?"
-tree i (Seq expr1 expr2) = tree i expr1 . tree i expr2
-tree i (IfThenElse guard true false)
-  = (SAssume guard         |>) . tree i true
- <> (SAssume (OpNeg guard) |>) . tree i false
-tree i (While guard body)
-  = (SAssume (OpNeg guard) |>)
- <> (SAssume guard |>) . tree i body . tree i (While guard body)
-tree i (Block [] stmt) = tree i stmt
-tree i (Block (VarDeclaration s _:xs) stmt) = rename s (varName i) . tree (succ i) (Block xs stmt)
-tree _ (TryCatch _catch _try _expr) = error "out of scope?"
+singleton :: a -> Tree a
+singleton x = Tree [Node x mempty]
+
+tree :: Stmt -> State Int (Tree Statement)
+tree Skip = pure mempty
+tree (Assert cond) = pure $ singleton (SAssert cond)
+tree (Assume cond) = pure $ singleton (SAssume cond)
+tree (Assign var expr) = pure $ singleton (SAssign var expr)
+tree (AAssign arr idx expr) = pure $ singleton (SAAssign arr idx expr)
+tree (DrefAssign _var _expr) = error "out of scope?"
+tree (Seq expr1 expr2) = do
+  t1 <- tree expr1
+  t2 <- tree expr2
+  pure (t1 |> t2)
+tree (IfThenElse guard true false) = do
+  ttrue  <- (singleton (SAssume guard) |>)         <$> tree true
+  tfalse <- (singleton (SAssume (OpNeg guard)) |>) <$> tree false
+  pure (ttrue <> tfalse)
+tree (While guard body) = do
+  tbody <- tree body
+  tloop <- tree (While guard body)
+  let ttrue  = singleton (SAssume guard) |> tbody |> tloop
+  let tfalse = singleton (SAssume (OpNeg guard))
+  pure (ttrue <> tfalse)
+tree (Block [] stmt) = tree stmt
+tree (Block (VarDeclaration s _:xs) stmt) = do
+  n <- fresh
+  t <- tree (Block xs stmt)
+  pure (rename s n t)
+tree (TryCatch _catch _try _expr) = error "out of scope?"
+
+fresh :: State Int String
+fresh = do
+  n <- gets varName
+  modify succ
+  pure n
 
 varName :: Int -> String
 varName i = 'x' : map ((digs !!) . read . pure) (show i)
