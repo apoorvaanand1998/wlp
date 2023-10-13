@@ -29,8 +29,9 @@ instance Show a => Show (Node a) where
   show (Node x (Tree [n])) = show x ++ "\n" ++ show n
   show (Node x t) = show x ++ show t
 
-limitDepth :: Int -> Tree a -> Tree a
-limitDepth 0 _ = Tree []
+-- |Cuts of branches that are too long, and replaces them with "ASSERT FALSE"
+limitDepth :: Int -> Tree Statement -> Tree Statement
+limitDepth 0 _ = Tree [Node (SAssert (LitB False)) mempty]
 limitDepth k (Tree xs) = Tree (map f xs)
   where f (Node n ns) = Node n (limitDepth (k-1) ns)
 
