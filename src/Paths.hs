@@ -1,4 +1,4 @@
-module Paths (Tree(..), Statement(..), programTree, limitDepth) where
+module Paths (Tree(..), Statement(..), Node(..), programTree, limitDepth) where
 
 import GCLParser.GCLDatatype
 import Data.List (intercalate)
@@ -28,6 +28,7 @@ instance Show a => Show (Tree a) where
 instance Show a => Show (Node a) where
   show (Node x (Tree [n])) = show x ++ "\n" ++ show n
   show (Node x t) = show x ++ show t
+
 
 limitDepth :: Int -> Tree a -> Tree a
 limitDepth 0 _ = Tree []

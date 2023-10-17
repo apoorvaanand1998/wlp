@@ -1,6 +1,7 @@
 module WLP where
 
 import qualified GCLParser.GCLDatatype as GCLD
+import Paths
 
 wlp :: GCLD.Stmt -> GCLD.Expr -> GCLD.Expr
 wlp GCLD.Skip post               = post
@@ -77,3 +78,12 @@ repBy (GCLD.RepBy (GCLD.Cond g e1 e2) v e) = GCLD.Cond (repBy (GCLD.RepBy g v e)
 repBy (GCLD.RepBy (GCLD.NewStore _) _ _)    = error "NewStore not implemented in repBy"
 repBy (GCLD.RepBy (GCLD.Dereference _) _ _) = error "Dereference not implemented in repBy"                                                       
 repBy other                                 = other
+
+treeWLP :: GCLD.Expr -> Tree GCLD.Stmt -> GCLD.Expr
+treeWLP post (Tree [])      = post
+treeWLP post (Tree [s])     = nodeWLP post s
+treeWLP post (Tree [g, ng]) = GCLD.BinopExpr GCLD.And (nodeWLP post g) (nodeWLP post ng)
+treeWLP _    _              = error "treeWLP should not be hitting this case"
+
+nodeWLP :: GCLD.Expr -> Node GCLD.Stmt -> GCLD.Expr
+nodeWLP post (Node a t) = wlp a (treeWLP post t)
