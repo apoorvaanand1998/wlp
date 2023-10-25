@@ -25,12 +25,13 @@ common warnings
 library
     import:           warnings
     exposed-modules:  MyLib
-    other-modules:    Paths
+    other-modules:    Paths, Transformers
     -- other-extensions:
     build-depends:    base ^>=4.18.0.0
                     , GCLparser ^>=0.2.1
                     , z3 ^>= 408.2
-                    , mtl
+                    , mtl ^>= 2.3.1
+                    , containers ^>=0.7
     hs-source-dirs:   src
     default-language: GHC2021
 
