@@ -1,4 +1,4 @@
-// Given a non-empty array `a`, and two indices `i` and `j`, this 
+// Given a non-empty array `a`, and two indices `i` and `j`, this
 // program swaps the content of `a[i]` and `a[j]`.
 
 swap(i:int, j:int | a:[]int) {
@@ -6,10 +6,11 @@ swap(i:int, j:int | a:[]int) {
   var oldiVal:int, oldjVal:int, tmp:int {
       oldiVal := a[i] ;
       oldjVal := a[j] ;
-        
-      tmp  := a[i] ; 
+
+      tmp  := a[i] ;
       a[i] := a[j] ;
       a[j] := tmp ;
       assert (a[i] = oldjVal) && (a[j] = oldiVal)
   }
 }
+

@@ -27,10 +27,13 @@ library
     exposed-modules:  MyLib
     other-modules:    Paths
     -- other-extensions:
-    build-depends:    base ^>=4.18.0.0
-                    , GCLparser ^>=0.2.1
-                    , z3 ^>= 408.2
-                    , mtl
+    build-depends:
+        base ^>=4.18.0.0,
+        containers,
+        GCLparser ^>=0.2.1,
+        recursion-schemes,
+        mtl,
+        z3 ^>= 408.2
     hs-source-dirs:   src
     default-language: GHC2021
 
