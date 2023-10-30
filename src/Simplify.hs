@@ -12,7 +12,12 @@ and e1 e@(BinopExpr Or e2 _) = if e1 == e2 then e1 else opAnd e1 e
 and e1 e2 
     | e1 == e2         = e1
     | fst (dist e1 e2) = snd (dist e1 e2)
-    | otherwise        = opAnd e1 e2
+    | fst (lt e1 e2) = snd (lt e1 e2)
+    | fst (gt e1 e2) = snd (gt e1 e2)
+    | fst (lte e1 e2) = snd (lte e1 e2)
+    | fst (gte e1 e2) = snd (gte e1 e2)
+    | fst (eql e1 e2) = snd (eql e1 e2)
+    | otherwise       = opAnd e1 e2
     where      
         dist :: Expr -> Expr -> (Bool, Expr)
         dist (BinopExpr Or x1 y1) (BinopExpr Or x2 y2) 
