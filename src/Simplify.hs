@@ -53,7 +53,28 @@ and e1 e2
         lt ie1 ie2      = dflt ie1 ie2
 
         gt :: Expr -> Expr -> (Bool, Expr)
-        gt = undefined
+        gt ie1@(BinopExpr GreaterThan (Var x) (LitI i)) ie2@(BinopExpr GreaterThan (Var y) (LitI j))
+            | x == y    = (True, opGreaterThan (Var x) (LitI (max i j)))
+            | otherwise = dflt ie1 ie2
+        gt ie1@(BinopExpr GreaterThan (Var x) (LitI i)) ie2@(BinopExpr LessThanEqual (Var y) (LitI j))
+            | x == y    = lt ie1 (BinopExpr LessThan (Var y) (LitI (j+1)))
+            | otherwise = dflt ie1 ie2
+        gt ie1@(BinopExpr LessThanEqual (Var x) (LitI j)) ie2@(BinopExpr GreaterThan (Var y) (LitI i))
+            | x == y    = lt ie1 (BinopExpr LessThan (Var y) (LitI (j+1)))
+            | otherwise = dflt ie1 ie2
+        gt ie1@(BinopExpr GreaterThan (Var x) (LitI i)) ie2@(BinopExpr GreaterThanEqual (Var y) (LitI j))
+            | x == y    = gt ie1 (BinopExpr LessThan (Var y) (LitI (j-1)))
+            | otherwise = dflt ie1 ie2
+        gt ie1@(BinopExpr GreaterThanEqual (Var x) (LitI j)) ie2@(BinopExpr GreaterThan (Var y) (LitI i))
+            | x == y    = gt ie1 (BinopExpr LessThan (Var y) (LitI (j-1)))
+            | otherwise = dflt ie1 ie2
+        gt ie1@(BinopExpr GreaterThan (Var x) (LitI i)) ie2@(BinopExpr Equal (Var y) (LitI j))
+            | x == y    = if j > i then (True, opEqual (Var x) (LitI j)) else (True, LitB False)
+            | otherwise = dflt ie1 ie2
+        gt ie1@(BinopExpr Equal (Var x) (LitI j)) ie2@(BinopExpr GreaterThan (Var y) (LitI i))
+            | x == y    = if j > i then (True, opEqual (Var x) (LitI j)) else (True, LitB False)
+            | otherwise = dflt ie1 ie2
+        gt ie1 ie2      = dflt ie1 ie2
 
 or :: Expr -> Expr -> Expr
 or (LitB True) _   = LitB True
