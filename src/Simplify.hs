@@ -125,6 +125,10 @@ or e1 e@(BinopExpr And e2 _) = if e1 == e2 then e1 else opOr e1 e
 or e1 e2 
     | e1 == e2         = e1
     | fst (dist e1 e2) = snd (dist e1 e2)
+    | fst (lt e1 e2)   = snd (lt e1 e2)
+    | fst (gt e1 e2)   = snd (gt e1 e2)
+    | fst (lte e1 e2)  = snd (lte e1 e2)
+    | fst (gte e1 e2)  = snd (gte e1 e2)
     | otherwise        = opOr e1 e2
     where
         dist :: Expr -> Expr -> (Bool, Expr)
@@ -183,3 +187,11 @@ implies (LitB False) _ = LitB True
 implies _ (LitB True)  = LitB True                 
 implies e (LitB False) = neg e                     
 implies e1 e2          = neg e1 `or` e2
+
+minus :: Expr -> Expr -> Expr
+minus (LitI x) (LitI y)                     = LitI (x-y)
+minus (LitI x) (BinopExpr Minus e (LitI y)) = opMinus (LitI (x+y)) e
+minus (LitI x) (BinopExpr Minus (LitI y) e) = opPlus (LitI (x-y)) e
+minus (LitI x) (BinopExpr Plus e (LitI y))  = opMinus (LitI (x-y)) e
+minus (LitI x) (BinopExpr Plus (LitI y) e)  = minus (LitI x) (opPlus e (LitI y))
+minus e1       e2                           = opMinus e1 e2
