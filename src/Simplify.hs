@@ -135,6 +135,42 @@ or e1 e2
                          opAnd y1 (opOr x1 x2))
         dist ie1 ie2   = (False, opOr ie1 ie2)
 
+        dflt x y = (False, opOr x y)
+
+        lt :: Expr -> Expr -> (Bool, Expr)
+        lt ie1@(BinopExpr LessThan (Var x) (LitI i)) ie2@(BinopExpr LessThan (Var y) (LitI j))
+            | x == y    = (True, opLessThan (Var x) (LitI (max i j)))
+            | otherwise = dflt ie1 ie2
+        lt ie1@(BinopExpr LessThan (Var x) (LitI i)) ie2@(BinopExpr LessThanEqual (Var y) (LitI j))
+            | x == y    = lt ie1 (opLessThan (Var x) (LitI (j+1)))
+            | otherwise = dflt ie1 ie2
+        lt ie1@(BinopExpr LessThanEqual (Var x) (LitI i)) ie2@(BinopExpr LessThan (Var y) (LitI j))
+            | x == y    = lt (opLessThan (Var x) (LitI (i+1))) ie2
+            | otherwise = dflt ie1 ie2
+        lt ie1 ie2      = dflt ie1 ie2
+
+        gt :: Expr -> Expr -> (Bool, Expr)
+        gt ie1@(BinopExpr GreaterThan (Var x) (LitI i)) ie2@(BinopExpr GreaterThan (Var y) (LitI j))
+            | x == y    = (True, opGreaterThan (Var x) (LitI (min i j)))
+            | otherwise = dflt ie1 ie2
+        gt ie1@(BinopExpr GreaterThan (Var x) (LitI i)) ie2@(BinopExpr GreaterThanEqual (Var y) (LitI j))
+                        = gt ie1 (opGreaterThan (Var y) (LitI (j-1)))
+        gt ie1@(BinopExpr GreaterThanEqual (Var x) (LitI j)) ie2@(BinopExpr GreaterThan (Var y) (LitI i))
+                        = gt ie2 ie1
+        gt ie1 ie2      = dflt ie1 ie2
+
+        lte :: Expr -> Expr -> (Bool, Expr)
+        lte ie1@(BinopExpr LessThanEqual (Var x) (LitI i)) ie2@(BinopExpr LessThanEqual (Var y) (LitI j))
+            | x == y    = (True, opLessThanEqual (Var x) (LitI (max (i+1) (j+1))))
+            | otherwise = dflt ie1 ie2
+        lte ie1 ie2     = dflt ie1 ie2
+
+        gte :: Expr -> Expr -> (Bool, Expr)
+        gte ie1@(BinopExpr GreaterThanEqual (Var x) (LitI i)) ie2@(BinopExpr GreaterThanEqual (Var y) (LitI j))
+            = gt (opGreaterThan (Var x) (LitI (i-1))) (opGreaterThan (Var y) (LitI (j-1)))
+        gte ie1 ie2
+            = dflt ie1 ie2
+
 neg :: Expr -> Expr
 neg (OpNeg e)    = e
 neg (LitB True)  = LitB False
