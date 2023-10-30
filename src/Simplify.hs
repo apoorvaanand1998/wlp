@@ -191,7 +191,14 @@ implies e1 e2          = neg e1 `or` e2
 minus :: Expr -> Expr -> Expr
 minus (LitI x) (LitI y)                     = LitI (x-y)
 minus (LitI x) (BinopExpr Minus e (LitI y)) = opMinus (LitI (x+y)) e
+minus (BinopExpr Minus e (LitI y)) (LitI x) = opMinus e (LitI (y-x))
 minus (LitI x) (BinopExpr Minus (LitI y) e) = opPlus (LitI (x-y)) e
+minus (BinopExpr Minus (LitI y) e) (LitI x) = opMinus (LitI (y-x)) e
 minus (LitI x) (BinopExpr Plus e (LitI y))  = opMinus (LitI (x-y)) e
+minus (BinopExpr Plus e (LitI y)) (LitI x)  = opPlus e (LitI (y-x))
 minus (LitI x) (BinopExpr Plus (LitI y) e)  = minus (LitI x) (opPlus e (LitI y))
+minus (BinopExpr Plus (LitI y) e) (LitI x)  = minus (opPlus e (LitI y)) (LitI x)
 minus e1       e2                           = opMinus e1 e2
+
+plus :: Expr -> Expr -> Expr
+plus (LitI x) (LitI y)                      = LitI (x+y)
