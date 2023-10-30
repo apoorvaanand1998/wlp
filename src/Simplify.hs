@@ -211,3 +211,23 @@ plus (BinopExpr Plus e (LitI y)) (LitI x)   = opPlus e (LitI (x+y))
 plus (LitI x) (BinopExpr Plus (LitI y) e)   = opPlus e (LitI (x+y))
 plus (BinopExpr Plus (LitI y) e) (LitI x)   = opPlus e (LitI (x+y))
 plus e1         e2                          = opPlus e1 e2
+
+multiply :: Expr -> Expr -> Expr
+multiply (LitI x) (LitI y)                        = LitI (x*y)
+multiply (LitI x) (BinopExpr Minus e (LitI y))    = opMinus (opMultiply (LitI x) e) (LitI (y*x))
+multiply (BinopExpr Minus e (LitI y)) (LitI x)    = opMinus (opMultiply (LitI x) e) (LitI (y*x))
+multiply (LitI x) (BinopExpr Minus (LitI y) e)    = opMinus (LitI (x*y)) (opMultiply (LitI x) e)
+multiply (BinopExpr Minus (LitI y) e) (LitI x)    = opMinus (LitI (x*y)) (opMultiply (LitI x) e)
+multiply (LitI x) (BinopExpr Plus e (LitI y))     = opPlus (opMultiply (LitI x) e) (LitI (x*y))
+multiply (BinopExpr Plus e (LitI y)) (LitI x)     = opPlus (opMultiply (LitI x) e) (LitI (x*y))
+multiply (LitI x) (BinopExpr Plus (LitI y) e)     = opPlus (opMultiply (LitI x) e) (LitI (x*y))
+multiply (BinopExpr Plus (LitI y) e) (LitI x)     = opPlus (opMultiply (LitI x) e) (LitI (x*y))
+multiply (LitI x) (BinopExpr Multiply e (LitI y)) = opMultiply e (LitI (x*y))
+multiply (BinopExpr Multiply e (LitI y)) (LitI x) = opMultiply e (LitI (x*y))
+multiply (LitI x) (BinopExpr Multiply (LitI y) e) = opMultiply e (LitI (x*y))
+multiply (BinopExpr Multiply (LitI y) e) (LitI x) = opMultiply e (LitI (x*y))
+multiply (LitI x) (BinopExpr Divide e (LitI y))   = opDivide (opMultiply (LitI x) e) (LitI y)
+multiply (BinopExpr Divide e (LitI y)) (LitI x)   = opDivide (opMultiply (LitI x) e) (LitI y)
+multiply (LitI x) (BinopExpr Divide (LitI y) e)   = opDivide (LitI (x*y)) e
+multiply (BinopExpr Divide (LitI y) e) (LitI x)   = opDivide (LitI (x*y)) e
+multiply e1         e2                            = opMultiply e1 e2
