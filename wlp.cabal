@@ -29,6 +29,7 @@ library
                     , WLP
                     , Utils
                     , Simplify
+                    , Verification
     -- other-extensions:
     build-depends:
         base ^>=4.18.0.0,
