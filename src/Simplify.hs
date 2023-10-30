@@ -231,3 +231,19 @@ multiply (BinopExpr Divide e (LitI y)) (LitI x)   = opDivide (opMultiply (LitI x
 multiply (LitI x) (BinopExpr Divide (LitI y) e)   = opDivide (LitI (x*y)) e
 multiply (BinopExpr Divide (LitI y) e) (LitI x)   = opDivide (LitI (x*y)) e
 multiply e1         e2                            = opMultiply e1 e2
+
+divide :: Expr -> Expr -> Expr
+divide (LitI x) (LitI y)                        = LitI (x `div` y)
+divide (BinopExpr Minus e (LitI y)) (LitI x)    = opMinus (opDivide e (LitI x)) (LitI (y `div` x))
+divide (BinopExpr Minus (LitI y) e) (LitI x)    = opMinus (LitI (y `div` x)) (opDivide e (LitI x))
+divide (BinopExpr Plus e (LitI y)) (LitI x)     = opPlus (opDivide e (LitI x)) (LitI (y `div` x))
+divide (BinopExpr Plus (LitI y) e) (LitI x)     = opPlus (opDivide e (LitI x)) (LitI (y `div` x))
+divide (LitI x) (BinopExpr Multiply e (LitI y)) = opMultiply (opDivide (LitI 1) e) (LitI (x `div` y))
+divide (BinopExpr Multiply e (LitI y)) (LitI x) = opMultiply e (LitI (y `div` x))
+divide (LitI x) (BinopExpr Multiply (LitI y) e) = opMultiply (opDivide (LitI 1) e) (LitI (x `div` y))
+divide (BinopExpr Multiply (LitI y) e) (LitI x) = opMultiply e (LitI (y `div` x))
+divide (LitI x) (BinopExpr Divide e (LitI y))   = opDivide (LitI (x*y)) e
+divide (BinopExpr Divide e (LitI y)) (LitI x)   = opDivide e (LitI (x*y))
+divide (LitI x) (BinopExpr Divide (LitI y) e)   = opMultiply (LitI (x `div` y)) e
+divide (BinopExpr Divide (LitI y) e) (LitI x)   = opMultiply (LitI (y `div` x)) (opDivide (LitI 1) e)
+divide e1         e2                            = opMultiply e1 e2
