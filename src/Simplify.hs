@@ -3,6 +3,28 @@ module Simplify where
 
 import GCLParser.GCLDatatype
 import Prelude hiding (and, or)
+import Data.Map (Map)
+
+simpFixPoint :: Expr -> Expr
+simpFixPoint e = undefined
+    where
+        fixEq f x = let x' = f x in if x' == x then x else fixEq f x'
+
+simplifyAll :: Expr -> Expr
+simplifyAll (Parens e)   = simplifyAll e
+simplifyAll (OpNeg e)    = neg e
+simplifyAll (Forall s e) = Forall s (simplifyAll e)
+simplifyAll (Exists s e) = Exists s (simplifyAll e)
+simplifyAll be@(BinopExpr b e1 e2) = case b of
+    And         -> and e1 e2
+    Or          -> or e1 e2
+    Implication -> implies e1 e2
+    Minus       -> minus e1 e2
+    Plus        -> plus e1 e2
+    Multiply    -> multiply e1 e2
+    Divide      -> divide e1 e2
+    other       -> be
+simplifyAll x = x
 
 and :: Expr -> Expr -> Expr
 and (LitB False) _ = LitB False
@@ -13,12 +35,12 @@ and e1 e@(BinopExpr Or e2 _) = if e1 == e2 then e1 else opAnd e1 e
 and e1 e2 
     | e1 == e2         = e1
     | fst (dist e1 e2) = snd (dist e1 e2)
-    | fst (lt e1 e2) = snd (lt e1 e2)
-    | fst (gt e1 e2) = snd (gt e1 e2)
-    | fst (lte e1 e2) = snd (lte e1 e2)
-    | fst (gte e1 e2) = snd (gte e1 e2)
-    | fst (eql e1 e2) = snd (eql e1 e2)
-    | otherwise       = opAnd e1 e2
+    | fst (lt e1 e2)   = snd (lt e1 e2)
+    | fst (gt e1 e2)   = snd (gt e1 e2)
+    | fst (lte e1 e2)  = snd (lte e1 e2)
+    | fst (gte e1 e2)  = snd (gte e1 e2)
+    | fst (eql e1 e2)  = snd (eql e1 e2)
+    | otherwise        = opAnd e1 e2
     where      
         dist :: Expr -> Expr -> (Bool, Expr)
         dist (BinopExpr Or x1 y1) (BinopExpr Or x2 y2) 
