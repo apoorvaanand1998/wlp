@@ -5,7 +5,7 @@ synopsis:           todo
 description:        todo todo
 homepage:           https://www.cs.uu.nl/docs/vakken/pv
 license:            MIT
-author:             Anand Apoorva
+author:             Apoorva Anand
                     Sem van Nieuwenhuizen
                     Wilco Verhoef
 maintainer:         a.apoorvaanand@students.uu.nl
@@ -26,11 +26,17 @@ library
     import:           warnings
     exposed-modules:  MyLib
     other-modules:    Paths
+                    , WLP
+                    , Utils
+                    , Simplify
+                    , Verification
+                    , Transformers
     -- other-extensions:
-    build-depends:    base ^>=4.18.0.0
-                    , GCLparser ^>=0.2.1
-                    , z3 ^>= 408.2
-                    , mtl
+    build-depends:     base ^>=4.18.0.0
+                    ,  containers
+                    ,  GCLparser ^>=0.2.1
+                    ,  mtl ^>= 2.3.1
+                    ,  z3 ^>= 408.2
     hs-source-dirs:   src
     default-language: GHC2021
 

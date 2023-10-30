@@ -1,6 +1,7 @@
 module WLP where
 
 import qualified GCLParser.GCLDatatype as GCLD
+import Paths
 
 wlp :: GCLD.Stmt -> GCLD.Expr -> GCLD.Expr
 wlp GCLD.Skip post               = post
@@ -43,9 +44,9 @@ repBy (GCLD.RepBy ex@(GCLD.Exists ev ee) vr@(GCLD.Var v) (GCLD.RepBy _ i e)) = i
                                                                                then GCLD.Exists ev (repBy (GCLD.RepBy ee vr (GCLD.RepBy vr i e)))
                                                                                else ex
 repBy (GCLD.RepBy (GCLD.SizeOf se) v (GCLD.RepBy _ i e)) = GCLD.SizeOf (repBy (GCLD.RepBy se v (GCLD.RepBy v i e)))
-repBy (GCLD.RepBy (GCLD.RepBy re1 re2 re3) v (GCLD.RepBy _ i e)) = GCLD.RepBy (repBy (GCLD.RepBy re1 v (GCLD.RepBy v i e)))
-                                                                              (repBy (GCLD.RepBy re2 v (GCLD.RepBy v i e)))
-                                                                              (repBy (GCLD.RepBy re3 v (GCLD.RepBy v i e)))
+repBy (GCLD.RepBy (GCLD.RepBy re1 re2 re3) v (GCLD.RepBy _ i e)) = repBy (GCLD.RepBy (repBy (GCLD.RepBy re1 v (GCLD.RepBy v i e)))
+                                                                                     (repBy (GCLD.RepBy re2 v (GCLD.RepBy v i e)))
+                                                                                     (repBy (GCLD.RepBy re3 v (GCLD.RepBy v i e))))
 repBy (GCLD.RepBy (GCLD.Cond g e1 e2) v (GCLD.RepBy _ i e)) = GCLD.Cond (repBy (GCLD.RepBy g v (GCLD.RepBy v i e)))
                                                                         (repBy (GCLD.RepBy e1 v (GCLD.RepBy v i e)))
                                                                         (repBy (GCLD.RepBy e2 v (GCLD.RepBy v i e)))
@@ -67,9 +68,9 @@ repBy (GCLD.RepBy ex@(GCLD.Exists ev ee) vr@(GCLD.Var v) e) = if ev /= v
                                                               then GCLD.Exists ev (repBy (GCLD.RepBy ee vr e))
                                                               else ex
 repBy (GCLD.RepBy (GCLD.SizeOf se) v e) = GCLD.SizeOf (repBy (GCLD.RepBy se v e))
-repBy (GCLD.RepBy (GCLD.RepBy re1 re2 re3) v e) = GCLD.RepBy (repBy (GCLD.RepBy re1 v e))
-                                                             (repBy (GCLD.RepBy re2 v e))
-                                                             (repBy (GCLD.RepBy re3 v e))
+repBy (GCLD.RepBy (GCLD.RepBy re1 re2 re3) v e) = repBy $ GCLD.RepBy (repBy (GCLD.RepBy re1 v e))
+                                                                     (repBy (GCLD.RepBy re2 v e))
+                                                                     (repBy (GCLD.RepBy re3 v e))
 repBy (GCLD.RepBy (GCLD.Cond g e1 e2) v e) = GCLD.Cond (repBy (GCLD.RepBy g v e))
                                                        (repBy (GCLD.RepBy e1 v e))
                                                        (repBy (GCLD.RepBy e2 v e))
@@ -77,3 +78,12 @@ repBy (GCLD.RepBy (GCLD.Cond g e1 e2) v e) = GCLD.Cond (repBy (GCLD.RepBy g v e)
 repBy (GCLD.RepBy (GCLD.NewStore _) _ _)    = error "NewStore not implemented in repBy"
 repBy (GCLD.RepBy (GCLD.Dereference _) _ _) = error "Dereference not implemented in repBy"                                                       
 repBy other                                 = other
+
+treeWLP :: GCLD.Expr -> Tree GCLD.Stmt -> GCLD.Expr
+treeWLP post (Tree [])      = post
+treeWLP post (Tree [s])     = nodeWLP post s
+treeWLP post (Tree [g, ng]) = GCLD.BinopExpr GCLD.And (nodeWLP post g) (nodeWLP post ng)
+treeWLP _    _              = error "treeWLP should not be hitting this case"
+
+nodeWLP :: GCLD.Expr -> Node GCLD.Stmt -> GCLD.Expr
+nodeWLP post (Node a t) = wlp a (treeWLP post t)

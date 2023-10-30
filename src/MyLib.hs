@@ -2,18 +2,22 @@ module MyLib where
 
 import qualified GCLParser.Parser as GCL
 import qualified GCLParser.GCLDatatype as GCLD
-import Control.Monad ( join )
-import Data.Maybe
-import qualified Data.Traversable as T
-import Z3.Monad
-
 import Paths
+import Utils
+import WLP
 
 treeGCLfile :: Int -> FilePath -> IO (GCL.ParseResult (Tree Statement))
-treeGCLfile k = (fmap.fmap.fmap $ limitDepth k . programTree) GCL.parseGCLfile
+treeGCLfile k = (fmap.fmap.fmap $ limitDepth k . fst . programTree) GCL.parseGCLfile
 
 testParsing :: IO (GCL.ParseResult GCLD.Program)
 testParsing = GCL.parseGCLfile "examples/examples/min.gcl"
+
+testWLP :: IO GCLD.Expr
+testWLP = do
+  (Right tree) <- treeGCLfile 111 "examples/examples/min.gcl"
+  let post = GCLD.LitB True
+  let res = repBy $ treeWLP post (treeStmt tree)
+  return res
 
 {-
 z3script :: Z3 (Maybe [Integer])
