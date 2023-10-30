@@ -94,6 +94,22 @@ and e1 e2
             | otherwise = dflt ie1 ie2
         lte ie1 ie2     = dflt ie1 ie2
 
+        gte :: Expr -> Expr -> (Bool, Expr)
+        gte ie1@(BinopExpr GreaterThanEqual (Var x) (LitI i)) ie2@(BinopExpr GreaterThanEqual (Var y) (LitI j))
+            = gt (opGreaterThan (Var x) (LitI (i-1))) (opGreaterThan (Var y) (LitI (j-1)))
+        gte ie1@(BinopExpr GreaterThanEqual (Var x) (LitI i)) ie2@(BinopExpr Equal (Var y) (LitI j))
+            = gt (opGreaterThan (Var x) (LitI (i-1))) ie2
+        gte ie1@(BinopExpr Equal (Var x) (LitI j)) ie2@(BinopExpr GreaterThanEqual (Var y) (LitI i))
+            = gt ie1 (opGreaterThan (Var y) (LitI (i-1)))
+        gte ie1 ie2
+            = dflt ie1 ie2
+
+        eql :: Expr -> Expr -> (Bool, Expr)
+        eql ie1@(BinopExpr Equal (Var x) (LitI i)) ie2@(BinopExpr Equal (Var y) (LitI j))
+            | x == y    = if i == j then (True, opEqual (Var x) i) else (True, LitB False)
+            | otherwise = dflt ie1 ie2
+        eql ie1 ie2     = dflt ie1 ie2
+
 or :: Expr -> Expr -> Expr
 or (LitB True) _   = LitB True
 or _ (LitB True)   = LitB True
