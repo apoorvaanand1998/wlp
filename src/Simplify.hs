@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-unused-matches #-}
 module Simplify where
 
 import GCLParser.GCLDatatype
@@ -111,7 +112,7 @@ and e1 e2
 
         eql :: Expr -> Expr -> (Bool, Expr)
         eql ie1@(BinopExpr Equal (Var x) (LitI i)) ie2@(BinopExpr Equal (Var y) (LitI j))
-            | x == y    = if i == j then (True, opEqual (Var x) i) else (True, LitB False)
+            | x == y    = if i == j then (True, opEqual (Var x) (LitI i)) else (True, LitB False)
             | otherwise = dflt ie1 ie2
         eql ie1 ie2     = dflt ie1 ie2
 
