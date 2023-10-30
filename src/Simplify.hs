@@ -52,6 +52,9 @@ and e1 e2
             | otherwise = dflt ie1 ie2
         lt ie1 ie2      = dflt ie1 ie2
 
+        gt :: Expr -> Expr -> (Bool, Expr)
+        gt = undefined
+
 or :: Expr -> Expr -> Expr
 or (LitB True) _   = LitB True
 or _ (LitB True)   = LitB True
