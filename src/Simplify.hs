@@ -202,3 +202,12 @@ minus e1       e2                           = opMinus e1 e2
 
 plus :: Expr -> Expr -> Expr
 plus (LitI x) (LitI y)                      = LitI (x+y)
+plus (LitI x) (BinopExpr Minus e (LitI y))  = opMinus e (LitI (y+x))
+plus (BinopExpr Minus e (LitI y)) (LitI x)  = opMinus e (LitI (y+x))
+plus (LitI x) (BinopExpr Minus (LitI y) e)  = opMinus (LitI (x+y)) e
+plus (BinopExpr Minus (LitI y) e) (LitI x)  = opMinus (LitI (x+y)) e
+plus (LitI x) (BinopExpr Plus e (LitI y))   = opPlus e (LitI (x+y))
+plus (BinopExpr Plus e (LitI y)) (LitI x)   = opPlus e (LitI (x+y))
+plus (LitI x) (BinopExpr Plus (LitI y) e)   = opPlus e (LitI (x+y))
+plus (BinopExpr Plus (LitI y) e) (LitI x)   = opPlus e (LitI (x+y))
+plus e1         e2                          = opPlus e1 e2
