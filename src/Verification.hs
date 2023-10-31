@@ -9,6 +9,8 @@ import Control.Monad.Reader (ReaderT(..), asks, local)
 import Data.Map (Map)
 import qualified Data.Map as M
 import Z3.Monad hiding (local)
+import Text.Read (Lexeme(String))
+import Data.Maybe (fromJust)
 
 -- ^ A environment mapping variables to Z3 ASTs, each variable is stored as an @Int@
 type Env = Map String AST
@@ -20,10 +22,37 @@ mkArraySorts = do
     boolSort <- mkBoolSort
     sequenceA
         [ (PTInt,) <$> mkArraySort intSort intSort
-        , (PTBool ,) <$> mkArraySort intSort boolSort
+        , (PTBool,) <$> mkArraySort intSort boolSort
         ]
 
-mkEnv = undefined
+-- ^ Takes a PrimitiveType and returns a Type
+toType :: PrimitiveType -> Type
+toType = PType
+
+mkEnv :: Map String Type -> Z3 Env
+mkEnv env = mkArraySorts >>= \arr -> do
+    lengthVars <- mkLengthVars env
+    vars <- mkVars arr env
+    return $ M.union lengthVars vars
+  where
+    mkLengthVars :: Map String Type -> Z3 Env
+    mkLengthVars =
+        fmap M.fromList
+        . traverse (\x -> ("#" <> x,) <$> mkFreshIntVar ("#" <> x))
+        . M.keys
+        -- Only handle arrays
+        . M.filter (\case
+            AType _ -> True
+            _ -> False
+        )
+    -- Could be a lot easier if we used Map instead of of a list 🤷‍♂️
+    mkVars :: [(PrimitiveType, Sort)] -> Map String Type -> Z3 Env
+    mkVars xs = M.traverseWithKey (\i t -> case t of
+        PType PTInt -> mkFreshIntVar i
+        PType PTBool -> mkFreshBoolVar i
+        RefType -> error "RefType should not be in the environment"
+        AType t' -> mkFreshVar i $ fromJust (t' `lookup` xs))
+
 
 -- ^ Takes an operator and two expressions and returns a Z3 AST
 parseOp :: BinOp -> AST -> AST -> ReaderT Env Z3 AST
