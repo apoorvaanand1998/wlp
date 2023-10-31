@@ -19,8 +19,8 @@ sp (SAssign x e) p = do
   pure p
 sp (SAAssign x i e) p = do
   e' <- eval e
-  arr <- gets $ findWithDefault undefined x
-  modify (insert x (RepBy arr i e'))
+  arr <- gets $ findWithDefault (ArrayElem (Var x) i) x
+  modify (insert x (RepBy arr i e')) -- probably needs simplification
   pure p
 
 eval :: Expr -> State (Map String Expr) Expr
