@@ -13,6 +13,16 @@ import Z3.Monad hiding (local)
 -- ^ A environment mapping variables to Z3 ASTs, each variable is stored as an @Int@
 type Env = Map String AST
 
+-- We cant use lists since PrimitiveType does not implement Ord
+mkArraySorts :: Z3 [(PrimitiveType, Sort)]
+mkArraySorts = do
+    intSort <- mkIntSort
+    boolSort <- mkBoolSort
+    sequenceA
+        [ (PTInt,) <$> mkArraySort intSort intSort
+        , (PTBool ,) <$> mkArraySort intSort boolSort
+        ]
+
 mkEnv = undefined
 
 -- ^ Takes an operator and two expressions and returns a Z3 AST
