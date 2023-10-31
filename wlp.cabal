@@ -31,6 +31,7 @@ library
                     , Simplify
                     , Verification
                     , Transformers
+                    , Heuristics
     -- other-extensions:
     build-depends:     base ^>=4.18.0.0
                     ,  containers
