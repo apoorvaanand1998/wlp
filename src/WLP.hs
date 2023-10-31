@@ -1,7 +1,14 @@
 module WLP where
 
 import qualified GCLParser.GCLDatatype as GCLD
+import GCLParser.GCLDatatype (Expr, Stmt)
 import Paths
+import Data.Map
+import qualified Simplify
+import Heuristics (someHeuristic)
+import Control.Monad.State (runState)
+import Transformers
+import Utils
 
 wlp :: GCLD.Stmt -> GCLD.Expr -> GCLD.Expr
 wlp GCLD.Skip post               = post
@@ -87,3 +94,30 @@ treeWLP _    _              = error "treeWLP should not be hitting this case"
 
 nodeWLP :: GCLD.Expr -> Node GCLD.Stmt -> GCLD.Expr
 nodeWLP post (Node a t) = wlp a (treeWLP post t)
+
+
+
+-- |This function is basically "treeWLP" but with feasibility check built-in
+verify :: Map String Expr -> Expr -> Tree Statement -> Expr
+
+-- Ignore infeasible paths (unsatisfiable assumptions)
+verify _ pre _ | not (satisfiable pre) = GCLD.LitB True
+
+-- Base case
+verify _ _ (Tree []) = GCLD.LitB True
+
+-- Depending on the heuristic, either check for feasibility first or calculate wp directly
+verify vars pre (Tree [Node s t])
+    | someHeuristic vars pre s = let (pre', vars') = runState (sp s pre) vars in
+                                 wlp (sToS s) $ verify vars' pre' t
+    | otherwise                = wlp (sToS s) $ verify mempty (GCLD.LitB True) t
+
+-- Branches
+verify vars pre (Tree [Node s1 t1, Node s2 t2]) = Simplify.and (verify vars pre (Tree [Node s1 t1])) (verify vars pre (Tree [Node s2 t2]))
+
+verify _ _ (Tree (_:_:_:_)) = error "verify should not be hitting this case"
+
+
+
+satisfiable :: Expr -> Bool
+satisfiable = error "some z3 magic"

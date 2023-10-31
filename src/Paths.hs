@@ -18,6 +18,11 @@ instance Show Statement where
   show (SAssign var expr) = show (Assign var expr)
   show (SAAssign arr idx expr) = show (AAssign arr idx expr)
 
+-- -- |An alternative tree
+-- data PathTree = Stop
+--               | Stmt Statement PathTree
+--               | Branch PathTree PathTree
+
 newtype Tree a = Tree [Node a] deriving (Semigroup, Monoid, Functor)
 data Node a = Node a (Tree a) deriving (Functor)
 

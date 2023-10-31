@@ -1,4 +1,4 @@
-module Utils (treeStmt) where
+module Utils (treeStmt, sToS) where
 
 import qualified Paths as P
 import qualified GCLParser.GCLDatatype as GCLD
