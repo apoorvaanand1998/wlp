@@ -9,8 +9,8 @@ import Control.Monad.Reader (ReaderT(..), asks, local)
 import Data.Map (Map)
 import qualified Data.Map as M
 import Z3.Monad hiding (local)
-import Text.Read (Lexeme(String))
 import Data.Maybe (fromJust)
+import Data.Functor.Foldable (cata)
 
 -- ^ A environment mapping variables to Z3 ASTs, each variable is stored as an @Int@
 type Env = Map String AST
@@ -28,6 +28,28 @@ mkArraySorts = do
 -- ^ Takes a PrimitiveType and returns a Type
 toType :: PrimitiveType -> Type
 toType = PType
+
+getTypes :: Expr -> Map String Type
+getTypes = \case
+    Var v -> M.singleton v RefType
+    LitI _ -> M.empty
+    LitB _ -> M.empty
+    LitNull -> M.empty
+    Parens e -> getTypes e
+    ArrayElem a i -> M.union (getTypes a) (getTypes i)
+    OpNeg e -> getTypes e
+    BinopExpr _ lhs rhs -> M.union (getTypes lhs) (getTypes rhs)
+    Forall i e -> M.insert i (PType PTInt) (getTypes e)
+    Exists i e -> M.insert i (PType PTInt) (getTypes e)
+    SizeOf e -> M.singleton ('#' : e') (PType PTInt)
+      where
+        e' = case e of
+            Var v -> v
+            _ -> error "SizeOf should only be called on a variable"
+    RepBy e1 e2 e3 -> M.unions [getTypes e1, getTypes e2, getTypes e3]
+    Cond g e1 e2 -> M.unions [getTypes g, getTypes e1, getTypes e2]
+    NewStore _ -> undefined
+    Dereference _ -> undefined
 
 mkEnv :: Map String Type -> Z3 Env
 mkEnv env = mkArraySorts >>= \arr -> do
