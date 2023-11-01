@@ -4,21 +4,20 @@ import Paths
 import GCLParser.GCLDatatype
 import Verification
 
--- |Remove paths for which given precondition `p` don't hold
+-- ^ Remove paths for which given precondition `p` don't hold
 pruneInfeasible :: Expr -> Tree Statement -> Tree Statement
 pruneInfeasible p (Tree [])
-  | satisfiable p = Tree []
-  | otherwise = pruned
+    | satisfiable p  = Tree []
+    | otherwise      = pruned
 pruneInfeasible p (Tree (Node (SAssume x) t:ns))
-  | satisfiable p' = pruneInfeasible p' t <> pruneInfeasible p (Tree ns)
-  | otherwise      = pruned               <> pruneInfeasible p (Tree ns)
+    | satisfiable p' = pruneInfeasible p' t <> pruneInfeasible p (Tree ns)
+    | otherwise      = pruned               <> pruneInfeasible p (Tree ns)
   where p' = BinopExpr And p x
 pruneInfeasible p (Tree (Node (SAssert x) t:ns)) = undefined
 pruneInfeasible p (Tree (Node (SAssign x e) t:ns)) = undefined
 pruneInfeasible p (Tree (Node (SAAssign x i e) t:ns)) = undefined
 
--- |I thinkt this is how we want to prune inveasible paths?
---  Just replace them with ASSERT FALSE?
+-- ^ I think this is how we want to prune inevasible paths? Just replace them with ASSERT FALSE?
 pruned :: Tree Statement
 pruned = singleton (SAssert (LitB False))
 

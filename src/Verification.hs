@@ -142,11 +142,11 @@ convert expr = case expr of
         e1' = BinopExpr And g e1
         e2' = BinopExpr And (OpNeg g) e2
         e' = BinopExpr Or e1' e2'
-    NewStore e -> undefined
-    Dereference x -> undefined
+    NewStore _ -> undefined
+    Dereference _ -> undefined
 
-verify :: (ReaderT Env Z3) AST -> IO Bool
-verify pred = do
+verify :: () -> Expr -> IO Bool
+verify ops pred = do
     tStart <- getCPUTime
     tEnd <- getCPUTime
     undefined
