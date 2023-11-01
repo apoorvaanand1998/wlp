@@ -9,11 +9,72 @@ import Control.Monad.Reader (ReaderT(..), asks, local)
 import Data.Map (Map)
 import qualified Data.Map as M
 import Z3.Monad hiding (local)
+import Data.Maybe (fromJust)
+import Data.Functor.Foldable (cata)
 
 -- ^ A environment mapping variables to Z3 ASTs, each variable is stored as an @Int@
 type Env = Map String AST
 
-mkEnv = undefined
+-- We cant use lists since PrimitiveType does not implement Ord
+mkArraySorts :: Z3 [(PrimitiveType, Sort)]
+mkArraySorts = do
+    intSort <- mkIntSort
+    boolSort <- mkBoolSort
+    sequenceA
+        [ (PTInt,) <$> mkArraySort intSort intSort
+        , (PTBool,) <$> mkArraySort intSort boolSort
+        ]
+
+-- ^ Takes a PrimitiveType and returns a Type
+toType :: PrimitiveType -> Type
+toType = PType
+
+getTypes :: Expr -> Map String Type
+getTypes = \case
+    Var v -> M.singleton v RefType
+    LitI _ -> M.empty
+    LitB _ -> M.empty
+    LitNull -> M.empty
+    Parens e -> getTypes e
+    ArrayElem a i -> M.union (getTypes a) (getTypes i)
+    OpNeg e -> getTypes e
+    BinopExpr _ lhs rhs -> M.union (getTypes lhs) (getTypes rhs)
+    Forall i e -> M.insert i (PType PTInt) (getTypes e)
+    Exists i e -> M.insert i (PType PTInt) (getTypes e)
+    SizeOf e -> M.singleton ('#' : e') (PType PTInt)
+      where
+        e' = case e of
+            Var v -> v
+            _ -> error "SizeOf should only be called on a variable"
+    RepBy e1 e2 e3 -> M.unions [getTypes e1, getTypes e2, getTypes e3]
+    Cond g e1 e2 -> M.unions [getTypes g, getTypes e1, getTypes e2]
+    NewStore _ -> undefined
+    Dereference _ -> undefined
+
+mkEnv :: Map String Type -> Z3 Env
+mkEnv env = mkArraySorts >>= \arr -> do
+    lengthVars <- mkLengthVars env
+    vars <- mkVars arr env
+    return $ M.union lengthVars vars
+  where
+    mkLengthVars :: Map String Type -> Z3 Env
+    mkLengthVars =
+        fmap M.fromList
+        . traverse (\x -> ("#" <> x,) <$> mkFreshIntVar ("#" <> x))
+        . M.keys
+        -- Only handle arrays
+        . M.filter (\case
+            AType _ -> True
+            _ -> False
+        )
+    -- Could be a lot easier if we used Map instead of of a list 🤷‍♂️
+    mkVars :: [(PrimitiveType, Sort)] -> Map String Type -> Z3 Env
+    mkVars xs = M.traverseWithKey (\i t -> case t of
+        PType PTInt -> mkFreshIntVar i
+        PType PTBool -> mkFreshBoolVar i
+        RefType -> error "RefType should not be in the environment"
+        AType t' -> mkFreshVar i $ fromJust (t' `lookup` xs))
+
 
 -- ^ Takes an operator and two expressions and returns a Z3 AST
 parseOp :: BinOp -> AST -> AST -> ReaderT Env Z3 AST
