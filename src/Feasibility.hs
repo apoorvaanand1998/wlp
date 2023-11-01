@@ -2,6 +2,7 @@ module Feasibility where
 
 import Paths
 import GCLParser.GCLDatatype
+import Verification
 
 -- |Remove paths for which given precondition `p` don't hold
 pruneInfeasible :: Expr -> Tree Statement -> Tree Statement
@@ -16,14 +17,10 @@ pruneInfeasible p (Tree (Node (SAssert x) t:ns)) = undefined
 pruneInfeasible p (Tree (Node (SAssign x e) t:ns)) = undefined
 pruneInfeasible p (Tree (Node (SAAssign x i e) t:ns)) = undefined
 
-
-
 -- |I thinkt this is how we want to prune inveasible paths?
 --  Just replace them with ASSERT FALSE?
 pruned :: Tree Statement
 pruned = singleton (SAssert (LitB False))
-
-
 
 substitute :: Expr -> String -> Expr -> Expr
 substitute e x (OpNeg expr) = OpNeg (substitute e x expr)
@@ -43,8 +40,9 @@ substitute e x (Cond expr1 expr2 expr3) = Cond (substitute e x expr1) (substitut
 substitute e x (NewStore expr) = NewStore (substitute e x expr)
 substitute e x (Dereference var) = error "what?"
 
-
-
-satisfiable :: Expr -> Bool
-satisfiable = error "todo: some z3 magic or smthng"
-
+satisfiable :: Expr -> IO Bool
+satisfiable pred  = do
+    res <- checkValid env pred
+    print res
+  where
+    env = mkEnv $ getTypes pred

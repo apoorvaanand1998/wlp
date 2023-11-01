@@ -3,13 +3,16 @@
 
 module Verification where
 
-import GCLParser.GCLDatatype
 import Control.Monad (join)
 import Control.Monad.Reader (ReaderT(..), asks, local)
+import Data.Function ((&))
+import Data.Functor ((<&>))
 import Data.Map (Map)
 import qualified Data.Map as M
-import Z3.Monad hiding (local)
 import Data.Maybe (fromJust)
+import GCLParser.GCLDatatype  (Expr(..), BinOp(..), PrimitiveType(..), Type(..))
+import System.CPUTime (getCPUTime)
+import Z3.Monad hiding (local)
 
 -- ^ A environment mapping variables to Z3 ASTs, each variable is stored as an @Int@
 type Env = Map String AST
@@ -94,50 +97,67 @@ parseOp op lhs rhs = case op of
 
 -- ^ Takes an expression and returns a Z3 AST
 -- There is probably a better way to do this, possible using catastrophism
-eExpr :: Expr -> (ReaderT Env Z3) AST
-eExpr expr = case expr of
+convert :: Expr -> (ReaderT Env Z3) AST
+convert expr = case expr of
     Var v -> asks (M.! v)
     LitI i -> mkInteger $ toInteger i
     LitB b -> mkBool b
     LitNull -> error "null should never happen at this point"
     Parens e -> e'
       where
-        e' = eExpr e
+        e' = convert e
     ArrayElem a i -> join $ mkSelect <$> a' <*> i'
       where
-        a' = eExpr a
-        i' = eExpr i
+        a' = convert a
+        i' = convert i
     OpNeg e -> mkUnaryMinus =<< e'
       where
-        e' = eExpr e
+        e' = convert e
     BinopExpr o lhs rhs -> join $ parseOp o <$> lhs' <*> rhs'
       where
-        lhs' = eExpr lhs
-        rhs' = eExpr rhs
+        lhs' = convert lhs
+        rhs' = convert rhs
     Forall i e -> do
         var <- mkFreshIntVar i
         app <- toApp var
         mkForallConst [] [app] =<< local (M.insert i var) e'
       where
-        e' = eExpr e
+        e' = convert e
     Exists i e -> do
         var <- mkFreshIntVar i
         app <- toApp var
         mkExistsConst [] [app] =<< local (M.insert i var) e'
       where
-        e' = eExpr e
+        e' = convert e
     SizeOf e -> case e of
         Var v -> asks (M.! ('#' : v))
         _ -> error "SizeOf should only be called on a variable"
     RepBy e1 e2 e3 -> join $ mkStore <$> e1' <*> e2' <*> e3'
       where
-        e1' = eExpr e1
-        e2' = eExpr e2
-        e3' = eExpr e3
-    Cond g e1 e2 -> eExpr e'
+        e1' = convert e1
+        e2' = convert e2
+        e3' = convert e3
+    Cond g e1 e2 -> convert e'
       where
         e1' = BinopExpr And g e1
         e2' = BinopExpr And (OpNeg g) e2
         e' = BinopExpr Or e1' e2'
     NewStore e -> undefined
     Dereference x -> undefined
+
+verify :: (ReaderT Env Z3) AST -> IO Bool
+verify pred = do
+    tStart <- getCPUTime
+    tEnd <- getCPUTime
+    undefined
+
+checkValid :: Map String Type -> Expr -> IO (Maybe String)
+checkValid env p =
+    (mkEnv env
+        -- Convert it to a Z3 AST
+        >>= runReaderT (mkEnv p)
+        -- Invert it, if there is a model it is not valid this will let us know
+        >>= mkNot
+        >>= assert)
+    -- Run the model
+    *> withModel modelToString <&> snd & evalZ3
