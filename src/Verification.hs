@@ -155,9 +155,18 @@ checkValid :: Map String Type -> Expr -> IO (Maybe String)
 checkValid env p =
     (mkEnv env
         -- Convert it to a Z3 AST
-        >>= runReaderT (mkEnv p)
+        >>= runReaderT (convert p)
         -- Invert it, if there is a model it is not valid this will let us know
         >>= mkNot
         >>= assert)
     -- Run the model
     *> withModel modelToString <&> snd & evalZ3
+
+checkFeasible :: Map String Type -> Expr -> IO Bool
+checkFeasible env p =
+    (mkEnv env
+        -- Convert it to a Z3 AST
+        >>= runReaderT (convert p)
+        >>= assert)
+    -- Run the model
+    *> check <&> (== Sat) & evalZ3
