@@ -10,7 +10,6 @@ import Data.Map (Map)
 import qualified Data.Map as M
 import Z3.Monad hiding (local)
 import Data.Maybe (fromJust)
-import Data.Functor.Foldable (cata)
 
 -- ^ A environment mapping variables to Z3 ASTs, each variable is stored as an @Int@
 type Env = Map String AST

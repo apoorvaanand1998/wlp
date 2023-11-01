@@ -1,9 +1,16 @@
-module Paths (Tree(..), Node(..), Statement(..), programTree, limitDepth) where
+module Paths
+    ( Tree (..)
+    , Node (..)
+    , Statement (..)
+    , programTree
+    , limitDepth
+    , singleton
+    ) where
 
+import Control.Monad.State
+import Data.List (intercalate)
 import GCLParser.GCLDatatype
 import GCLParser.Parser
-import Data.List (intercalate)
-import Control.Monad.State
 
 -- Probably need to annotate this eventually to have useful output
 data Statement
@@ -13,31 +20,33 @@ data Statement
     | SAAssign String Expr Expr
 
 instance Show Statement where
-  show (SAssert expr) = unwords ["ASSERT", show expr]
-  show (SAssume expr) = unwords ["ASSUME", show expr]
-  show (SAssign var expr) = show (Assign var expr)
-  show (SAAssign arr idx expr) = show (AAssign arr idx expr)
+    show (SAssert expr) = unwords ["ASSERT", show expr]
+    show (SAssume expr) = unwords ["ASSUME", show expr]
+    show (SAssign var expr) = show (Assign var expr)
+    show (SAAssign arr idx expr) = show (AAssign arr idx expr)
 
 newtype Tree a = Tree [Node a] deriving (Semigroup, Monoid, Functor)
+
 data Node a = Node a (Tree a) deriving (Functor)
 
-instance Show a => Show (Tree a) where
-  show (Tree []) = "\n└─■"
-  show (Tree [n])    = (("\n└── " ++) . intercalate "\n    " . lines) (show n)
-  show (Tree (n:ns)) = (("\n├── " ++) . intercalate "\n│   " . lines) (show n) ++ show (Tree ns)
+instance (Show a) => Show (Tree a) where
+    show (Tree []) = "\n└─■"
+    show (Tree [n]) = (("\n└── " ++) . intercalate "\n    " . lines) (show n)
+    show (Tree (n : ns)) = (("\n├── " ++) . intercalate "\n│   " . lines) (show n) ++ show (Tree ns)
 
-instance Show a => Show (Node a) where
-  show (Node x (Tree [n])) = show x ++ "\n" ++ show n
-  show (Node x t) = show x ++ show t
+instance (Show a) => Show (Node a) where
+    show (Node x (Tree [n])) = show x ++ "\n" ++ show n
+    show (Node x t) = show x ++ show t
 
--- |Cuts of branches that are too long, and replaces them with "ASSERT FALSE"
+-- | Cuts of branches that are too long, and replaces them with "ASSERT FALSE"
 limitDepth :: Int -> Tree Statement -> Tree Statement
 limitDepth 0 _ = Tree [Node (SAssert (LitB False)) mempty]
 limitDepth k (Tree xs) = Tree (map f xs)
-  where f (Node n ns) = Node n (limitDepth (k-1) ns)
+  where
+    f (Node n ns) = Node n (limitDepth (k - 1) ns)
 
 programTree :: Program -> (Tree Statement, Int)
-programTree Program { input, output, stmt } = runState (tree (Block (input ++ output) stmt)) 0
+programTree Program {input, output, stmt} = runState (tree (Block (input ++ output) stmt)) 0
 
 (|>) :: Tree a -> Tree a -> Tree a
 Tree [] |> t2 = t2
@@ -54,35 +63,36 @@ tree (Assign var expr) = pure $ singleton (SAssign var expr)
 tree (AAssign arr idx expr) = pure $ singleton (SAAssign arr idx expr)
 tree (DrefAssign _var _expr) = error "out of scope?"
 tree (Seq expr1 expr2) = do
-  t1 <- tree expr1
-  t2 <- tree expr2
-  pure (t1 |> t2)
+    t1 <- tree expr1
+    t2 <- tree expr2
+    pure (t1 |> t2)
 tree (IfThenElse guard true false) = do
-  ttrue  <- (singleton (SAssume guard) |>)         <$> tree true
-  tfalse <- (singleton (SAssume (OpNeg guard)) |>) <$> tree false
-  pure (ttrue <> tfalse)
+    ttrue <- (singleton (SAssume guard) |>) <$> tree true
+    tfalse <- (singleton (SAssume (OpNeg guard)) |>) <$> tree false
+    pure (ttrue <> tfalse)
 tree (While guard body) = do
-  tbody <- tree body
-  tloop <- tree (While guard body)
-  let ttrue  = singleton (SAssume guard) |> tbody |> tloop
-  let tfalse = singleton (SAssume (OpNeg guard))
-  pure (ttrue <> tfalse)
+    tbody <- tree body
+    tloop <- tree (While guard body)
+    let ttrue = singleton (SAssume guard) |> tbody |> tloop
+    let tfalse = singleton (SAssume (OpNeg guard))
+    pure (ttrue <> tfalse)
 tree (Block [] stmt) = tree stmt
-tree (Block (VarDeclaration s _:xs) stmt) = do
-  n <- fresh
-  t <- tree (Block xs stmt)
-  pure (renameTree s n t)
+tree (Block (VarDeclaration s _ : xs) stmt) = do
+    n <- fresh
+    t <- tree (Block xs stmt)
+    pure (renameTree s n t)
 tree (TryCatch _catch _try _expr) = error "out of scope?"
 
 fresh :: State Int String
 fresh = do
-  n <- gets varName
-  modify succ
-  pure n
+    n <- gets varName
+    modify succ
+    pure n
 
 varName :: Int -> String
 varName i = 'x' : map ((digs !!) . read . pure) (show i)
-  where digs = "₀₁₂₃₄₅₆₈₉"
+  where
+    digs = "₀₁₂₃₄₅₆₈₉"
 
 -- problem: when the original program contains any variable with a number as a name...
 -- does that happen?
@@ -92,10 +102,12 @@ renameTree new old = fmap (renameStmt new old)
 renameStmt :: String -> String -> Statement -> Statement
 renameStmt new old (SAssert expr) = SAssert $ rename new old expr
 renameStmt new old (SAssume expr) = SAssume $ rename new old expr
-renameStmt new old (SAssign var expr) | var == old = SAssign new $ rename new old expr
-                                     | otherwise  = SAssign var $ rename new old expr
-renameStmt new old (SAAssign arr idx expr) | arr == old = SAAssign new idx $ rename new old expr
-                                          | otherwise  = SAAssign arr idx $ rename new old expr
+renameStmt new old (SAssign var expr)
+    | var == old = SAssign new $ rename new old expr
+    | otherwise = SAssign var $ rename new old expr
+renameStmt new old (SAAssign arr idx expr)
+    | arr == old = SAAssign new idx $ rename new old expr
+    | otherwise = SAAssign arr idx $ rename new old expr
 
 -- myRename :: String -> String -> Expr -> Expr
 -- myRename rep by (OpNeg expr) = OpNeg (myRename rep by expr)
