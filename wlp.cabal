@@ -24,24 +24,25 @@ common warnings
 
 executable wlp
     other-modules:
+        Feasibility,
+        Heuristics,
+        Options,
         Paths,
-        WLP,
-        Utils,
         Simplify,
-        Verification,
         Transformers,
-        Heuristics
+        Utils,
+        Verification,
+        WLP
     -- other-extensions:
     build-depends:
         base ^>=4.18.0.0,
-        containers,
+        containers ^>=0.6.7,
         GCLparser ^>=0.2.1,
         mtl ^>= 2.3.1,
+        optparse-applicative ^>= 0.17,
+        recursion-schemes ^>= 5.2.2.2,
         z3 ^>= 408.2
     hs-source-dirs:   src
     default-language: GHC2021
-
     import:           warnings
     main-is:          Main.hs
-    hs-source-dirs:   app
-    default-language: GHC2021

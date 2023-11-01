@@ -1,7 +1,8 @@
 module Feasibility where
 
-import Paths
 import GCLParser.GCLDatatype
+
+import Paths
 import Verification
 
 -- ^ Remove paths for which given precondition `p` don't hold
@@ -39,9 +40,10 @@ substitute e x (Cond expr1 expr2 expr3) = Cond (substitute e x expr1) (substitut
 substitute e x (NewStore expr) = NewStore (substitute e x expr)
 substitute e x (Dereference var) = error "what?"
 
-satisfiable :: Expr -> IO Bool
-satisfiable pred  = do
-    res <- checkValid env pred
-    print res
-  where
-    env = mkEnv $ getTypes pred
+satisfiable :: Expr -> Bool
+satisfiable pred = undefined
+    -- do
+    -- res <- checkValid env pred
+    -- print res
+--   where
+    -- env = mkEnv $ getTypes pred
