@@ -1,16 +1,20 @@
 module Heuristics where
 
+import Control.Monad.Reader ( Reader )
+import Data.Map ( Map )
 import GCLParser.GCLDatatype
-import Paths
-import Control.Monad.Reader
-import Data.Map
 
+import Paths ( Statement )
 
-
-type Heuristic = Expr                     -- ^Precondition
-              -> Statement                -- ^The next statement
-              -> Reader (Map String Expr) -- ^The current variable store
-                 Bool                     -- ^Whether to check for feasibility
+type Heuristic
+    -- ^Precondition
+    = Expr
+    -- ^The next statement
+    -> Statement
+    -- ^The current variable store
+    -> Reader (Map String Expr)
+    -- ^Whether to check for feasibility
+    Bool
 
 someHeuristic :: Heuristic
 someHeuristic _pre _stmt = pure False

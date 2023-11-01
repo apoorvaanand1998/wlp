@@ -79,8 +79,8 @@ mkEnv env = mkArraySorts >>= \arr -> do
 
 
 -- ^ Takes an operator and two expressions and returns a Z3 AST
-parseOp :: BinOp -> AST -> AST -> ReaderT Env Z3 AST
-parseOp op lhs rhs = case op of
+convertOp :: BinOp -> AST -> AST -> ReaderT Env Z3 AST
+convertOp op lhs rhs = case op of
     And -> mkAnd [lhs, rhs]
     Or -> mkOr [lhs, rhs]
     Implication -> mkImplies lhs rhs
@@ -113,7 +113,7 @@ convert expr = case expr of
     OpNeg e -> mkUnaryMinus =<< e'
       where
         e' = convert e
-    BinopExpr o lhs rhs -> join $ parseOp o <$> lhs' <*> rhs'
+    BinopExpr o lhs rhs -> join $ convertOp o <$> lhs' <*> rhs'
       where
         lhs' = convert lhs
         rhs' = convert rhs
@@ -142,11 +142,11 @@ convert expr = case expr of
         e1' = BinopExpr And g e1
         e2' = BinopExpr And (OpNeg g) e2
         e' = BinopExpr Or e1' e2'
-    NewStore e -> undefined
-    Dereference x -> undefined
+    NewStore _ -> undefined
+    Dereference _ -> undefined
 
-verify :: (ReaderT Env Z3) AST -> IO Bool
-verify pred = do
+verify :: () -> Expr -> IO Bool
+verify ops pred = do
     tStart <- getCPUTime
     tEnd <- getCPUTime
     undefined
