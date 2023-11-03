@@ -27,7 +27,6 @@ library
     exposed-modules:  MyLib
     other-modules:    Paths
                     , WLP
-                    , Utils
                     , Simplify
                     , Verification
                     , Transformers
