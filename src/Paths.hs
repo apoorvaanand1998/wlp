@@ -1,7 +1,9 @@
-module Paths (PathTree(..), Statement(..), programTree, limitDepth) where
+module Paths (PathTree(..), Statement(..), programTree, limitDepth, singleton) where
 
+import Control.Monad.State
+import Data.List (intercalate)
 import GCLParser.GCLDatatype
--- import GCLParser.Parser
+import GCLParser.Parser
 import Data.List (intercalate)
 import Control.Monad.State
 import Data.Function (on)
@@ -15,12 +17,11 @@ data Statement
     | SAAssign String Expr Expr
 
 instance Show Statement where
-  show (SAssert expr) = unwords ["ASSERT", show expr]
-  show (SAssume expr) = unwords ["ASSUME", show expr]
-  show (SAssign var expr) = show (Assign var expr)
-  show (SAAssign arr idx expr) = show (AAssign arr idx expr)
+    show (SAssert expr) = unwords ["ASSERT", show expr]
+    show (SAssume expr) = unwords ["ASSUME", show expr]
+    show (SAssign var expr) = show (Assign var expr)
+    show (SAAssign arr idx expr) = show (AAssign arr idx expr)
 
--- |An alternative tree
 data PathTree = Terminate | Crash | Prune
               | Stmt Statement PathTree
               | Branch PathTree PathTree
@@ -62,9 +63,9 @@ tree (Assign var expr) = pure $ singleton (SAssign var expr)
 tree (AAssign arr idx expr) = pure $ singleton (SAAssign arr idx expr)
 tree (DrefAssign _var _expr) = error "out of scope?"
 tree (Seq expr1 expr2) = do
-  t1 <- tree expr1
-  t2 <- tree expr2
-  pure (t1 |> t2)
+    t1 <- tree expr1
+    t2 <- tree expr2
+    pure (t1 |> t2)
 tree (IfThenElse guard true false) = do
   ttrue  <- (singleton (SAssume guard) |>)         <$> tree true
   tfalse <- (singleton (SAssume (OpNeg guard)) |>) <$> tree false
@@ -84,15 +85,14 @@ tree (TryCatch _catch _try _expr) = error "out of scope?"
 
 fresh :: State Int String
 fresh = do
-  n <- gets varName
-  modify succ
-  pure n
+    n <- gets varName
+    modify succ
+    pure n
 
 
 
 varName :: Int -> String
-varName i = 'x' : map ((digs !!) . read . pure) (show i)
-  where digs = "₀₁₂₃₄₅₆₈₉"
+varName i = 'x' : map (("₀₁₂₃₄₅₆₈₉" !!) . read . pure) (show i)
 
 
 
