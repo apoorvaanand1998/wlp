@@ -30,7 +30,6 @@ executable wlp
         Paths,
         Simplify,
         Transformers,
-        Utils,
         Verification,
         WLP
     -- other-extensions:
