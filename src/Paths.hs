@@ -3,7 +3,7 @@ module Paths (PathTree(..), Statement(..), programTree, limitDepth, singleton) w
 import Control.Monad.State
 import Data.List (intercalate)
 import GCLParser.GCLDatatype
-import GCLParser.Parser
+-- import GCLParser.Parser
 import Data.List (intercalate)
 import Control.Monad.State
 import Data.Function (on)
