@@ -141,11 +141,7 @@ convert expr = case expr of
       where
         e1' = BinopExpr And g e1
         e2' = BinopExpr And (OpNeg g) e2
-        e' = BinopExpr Or e1' e2'
-<<<<<<< HEAD
-    NewStore e -> undefined
-    Dereference x -> undefined
-=======
+        e'  = BinopExpr Or e1' e2'
     NewStore _ -> undefined
     Dereference _ -> undefined
 
@@ -174,4 +170,3 @@ checkFeasible env p =
         >>= assert)
     -- Run the model
     *> check <&> (== Sat) & evalZ3
->>>>>>> main
