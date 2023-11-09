@@ -1,29 +1,23 @@
 module WLP where
 
 import qualified GCLParser.GCLDatatype as GCLD
+import GCLParser.GCLDatatype (Expr)
 import Paths
+import Data.Map
+import qualified Simplify
+import Heuristics (someHeuristic)
+import Control.Monad.State (runState)
+import Transformers
+import Data.Function (on)
 
-wlp :: GCLD.Stmt -> GCLD.Expr -> GCLD.Expr
-wlp GCLD.Skip post               = post
--- Reusing RepBy for Substitutable Expressions
--- RepBy (In this expression) (Replace this variable) (With this expression)
-wlp (GCLD.Assign varname e) post = GCLD.RepBy post (GCLD.Var varname) e
-wlp (GCLD.Assert e) post         = GCLD.BinopExpr GCLD.And e post
-wlp (GCLD.Assume e) post         = GCLD.BinopExpr GCLD.Implication e post
-wlp (GCLD.Seq s1 s2) post        = wlp s1 (wlp s2 post)
-wlp (GCLD.IfThenElse {}) _       = error "IfThenElse is a Compound Statement being passed to WLP"
-wlp (GCLD.While _ _) _           = error "While is a Compound Statement being passed to WLP"
-wlp (GCLD.AAssign var i e) post  = GCLD.RepBy post (GCLD.Var var) (GCLD.RepBy (GCLD.Var var) i e)
--- RepBy expressions need to be changed to substituted expressions before feeding into z3
-wlp (GCLD.Block _ s) post        = wlp s post
--- Assuming the block variables have been renamed to fresh variables correctly
--- Loops are a special case, rename multiple times in every iteration
--- TODO
-wlp (GCLD.DrefAssign _ _) _   = error "Dref not implemented in wlp"
-wlp (GCLD.TryCatch {}) _ = error "Try not implemented in wlp" -- do we go with method 1 or 2?
+wlp :: Statement -> Expr -> Expr
+wlp (SAssert e)         post = GCLD.BinopExpr GCLD.And e post
+wlp (SAssume e)         post = GCLD.BinopExpr GCLD.Implication e post
+wlp (SAssign varname e) post = GCLD.RepBy post (GCLD.Var varname) e
+wlp (SAAssign var i e)  post = GCLD.RepBy post (GCLD.Var var) (GCLD.RepBy (GCLD.Var var) i e)
 
 -- function needs clean-up...if we have time
-repBy :: GCLD.Expr -> GCLD.Expr
+repBy :: Expr -> Expr
 -- AAssign
 -- arr[i] := e
 repBy (GCLD.RepBy var@(GCLD.Var _) _ (GCLD.RepBy {})) = var
@@ -79,11 +73,29 @@ repBy (GCLD.RepBy (GCLD.NewStore _) _ _)    = error "NewStore not implemented in
 repBy (GCLD.RepBy (GCLD.Dereference _) _ _) = error "Dereference not implemented in repBy"                                                       
 repBy other                                 = other
 
-treeWLP :: GCLD.Expr -> Tree GCLD.Stmt -> GCLD.Expr
-treeWLP post (Tree [])      = post
-treeWLP post (Tree [s])     = nodeWLP post s
-treeWLP post (Tree [g, ng]) = GCLD.BinopExpr GCLD.And (nodeWLP post g) (nodeWLP post ng)
-treeWLP _    _              = error "treeWLP should not be hitting this case"
 
-nodeWLP :: GCLD.Expr -> Node GCLD.Stmt -> GCLD.Expr
-nodeWLP post (Node a t) = wlp a (treeWLP post t)
+
+-- |This function is basically "treeWLP" but with feasibility check built-in
+verify :: Map String Expr -> Expr -> PathTree -> Expr
+
+-- Ignore infeasible paths (unsatisfiable assumptions)
+verify _ pre _ | not (satisfiable pre) = GCLD.LitB True
+
+-- Base case
+verify _ _ Terminate = GCLD.LitB True
+verify _ _ Crash = GCLD.LitB False
+verify _ _ Prune = GCLD.LitB True
+
+-- Depending on the heuristic, either check for feasibility first or calculate wp directly
+verify vars pre (Stmt s t)
+    | someHeuristic vars pre s = let (pre', vars') = runState (sp s pre) vars in
+                                 wlp s $ verify vars' pre' t
+    | otherwise                = wlp s $ verify mempty (GCLD.LitB True) t
+
+-- Branches
+verify vars pre (Branch t1 t2) = (Simplify.and `on` verify vars pre) t1 t2
+
+
+
+satisfiable :: Expr -> Bool
+satisfiable = error "some z3 magic"
