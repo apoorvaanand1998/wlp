@@ -34,7 +34,6 @@ executable wlp
         Verification,
         WLP,
         Utils,
-        MyLib,
         MyVerification
         VerificationResult
     -- other-extensions:
