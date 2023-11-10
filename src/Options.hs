@@ -8,6 +8,8 @@ data Opts = Opts
     { maxDepth :: Int
     , heuristics :: Maybe String
     , simply :: Bool
+    , showTree :: Bool
+    , showWlp :: Bool
     , path :: FilePath
     } deriving (Show)
 
@@ -27,6 +29,14 @@ parser =
         ( long "simply"
         <> short 'S'
         <> help "Simplify the program before verification" )
+    <*> switch
+        ( long "show-tree"
+        <> short 'T'
+        <> help "Print the program tree (only use with tiny max-depth!)" )
+    <*> switch
+        ( long "show-wlp"
+        <> short 'W'
+        <> help "Print the WLP (might be very large!)" )
     <*> strArgument
         ( metavar "PATH"
         <> help "The file to verify" )

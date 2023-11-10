@@ -9,6 +9,8 @@ import Heuristics (someHeuristic)
 import Control.Monad.State (runState)
 import Transformers
 import Data.Function (on)
+import VerificationResult (Metric (..))
+import Control.Monad.Writer
 
 wlp :: Statement -> Expr -> Expr
 wlp (SAssert e)         post = GCLD.BinopExpr GCLD.And e post
@@ -75,27 +77,36 @@ repBy other                                 = other
 
 
 
+treeWLP :: PathTree -> (Expr, [Metric])
+treeWLP tree = runWriter $ verify mempty (GCLD.LitB True) tree
+
+
 -- |This function is basically "treeWLP" but with feasibility check built-in
-verify :: Map String Expr -> Expr -> PathTree -> Expr
+verify :: Map String Expr -> Expr -> PathTree -> Writer [Metric] Expr
 
 -- Ignore infeasible paths (unsatisfiable assumptions)
-verify _ pre _ | not (satisfiable pre) = GCLD.LitB True
+verify _ pre _ | not (satisfiable pre) = tell [Path False] >> pure (GCLD.LitB True)
 
 -- Base case
-verify _ _ Terminate = GCLD.LitB True
-verify _ _ Crash = GCLD.LitB False
-verify _ _ Prune = GCLD.LitB True
+verify _ _ Terminate = tell [Path True] >> pure (GCLD.LitB True)
+verify _ _ Crash     = tell [Path True] >> pure (GCLD.LitB False)
+verify _ _ Prune     = tell [Path True] >> pure (GCLD.LitB True)
 
 -- Depending on the heuristic, either check for feasibility first or calculate wp directly
 verify vars pre (Stmt s t)
     | someHeuristic vars pre s = let (pre', vars') = runState (sp s pre) vars in
-                                 wlp s $ verify vars' pre' t
-    | otherwise                = wlp s $ verify mempty (GCLD.LitB True) t
+                                 wlp s <$> verify vars' pre' t
+    | otherwise                = wlp s <$> verify mempty (GCLD.LitB True) t
 
 -- Branches
-verify vars pre (Branch t1 t2) = (Simplify.and `on` verify vars pre) t1 t2
+verify vars pre (Branch t1 t2) = (liftA2 Simplify.and `on` verify vars pre) t1 t2
 
 
 
 satisfiable :: Expr -> Bool
-satisfiable = error "some z3 magic"
+satisfiable = const True -- todo: error "some z3 magic"
+
+
+
+atoms :: Expr -> Int
+atoms = const 1

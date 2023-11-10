@@ -42,8 +42,8 @@ limitDepth _ Prune = Prune
 limitDepth k (Stmt s t) = Stmt s (limitDepth (k-1) t)
 limitDepth k (Branch t1 t2) = Branch (limitDepth (k-1) t1) (limitDepth (k-1) t2)
 
-programTree :: Program -> (PathTree, Int)
-programTree Program { input, output, stmt } = runState (tree (Block (input ++ output) stmt)) 0
+programTree :: Program -> PathTree
+programTree Program { input, output, stmt } = evalState (tree (Block (input ++ output) stmt)) 0
 
 (|>) :: PathTree -> PathTree -> PathTree
 Terminate |> t2 = t2
