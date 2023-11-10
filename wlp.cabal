@@ -31,7 +31,10 @@ executable wlp
         Simplify,
         Transformers,
         Verification,
-        WLP
+        WLP,
+        Utils,
+        MyLib,
+        MyVerification
     -- other-extensions:
     build-depends:
         base ^>=4.18.0.0,

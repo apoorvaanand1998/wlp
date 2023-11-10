@@ -3,3 +3,4 @@ dist*/
 #*
 *~
 *.xopp
+cabal.project.local
