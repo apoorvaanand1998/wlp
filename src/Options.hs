@@ -6,7 +6,7 @@ import Heuristics (Heuristic(..))
 
 data Opts = Opts
     { maxDepth :: Int
-    , heuristics :: Maybe String
+    , heuristic :: Int
     , simply :: Bool
     , showTree :: Bool
     , showWlp :: Bool
@@ -21,10 +21,11 @@ parser =
         <> value 50
         <> short 'K'
         <> help "Maximum depth of program paths" )
-    <*> optional (option auto
-        ( long "heuristics"
+    <*> option auto
+        ( long "heuristic"
+        <> value 100
         <> short 'H'
-        <> help "Heuristics to use" ))
+        <> help "Heuristic level (0 to turn off)" )
     <*> switch
         ( long "simply"
         <> short 'S'
