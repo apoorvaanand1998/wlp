@@ -3,6 +3,9 @@
 
 module Verification where
 
+import Options
+import Paths
+
 import Control.Monad (join)
 import Control.Monad.Reader (ReaderT(..), asks, local)
 import Data.Function ((&))
@@ -10,9 +13,9 @@ import Data.Functor ((<&>))
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Maybe (fromJust)
-import GCLParser.GCLDatatype  (Expr(..), BinOp(..), PrimitiveType(..), Type(..))
+import GCLParser.GCLDatatype
 import System.CPUTime (getCPUTime)
-import Z3.Monad hiding (local)
+import Z3.Monad hiding (Opts, local)
 
 -- ^ A environment mapping variables to Z3 ASTs, each variable is stored as an @Int@
 type Env = Map String AST
@@ -145,18 +148,31 @@ convert expr = case expr of
     NewStore _ -> undefined
     Dereference _ -> undefined
 
-verify :: () -> Expr -> IO Bool
-verify ops pred = do
+verify :: Opts -> Program -> IO Bool
+verify ops program = do
     tStart <- getCPUTime
+    -- Get program paths
+    let
+        tree = limitDepth maxDepth $ programTree program
+        paths = flatten tree
+    let
+        preds = map (\p -> (getTypes p, p)) paths
+    -- Check each path
+    results <- traverse (uncurry checkValid) preds
     tEnd <- getCPUTime
     undefined
+  where
+    Opts { maxDepth } = ops
+
+flatten :: PathTree -> [Expr]
+flatten = undefined
 
 checkValid :: Map String Type -> Expr -> IO (Maybe String)
 checkValid env p =
     (mkEnv env
         -- Convert it to a Z3 AST
         >>= runReaderT (convert p)
-        -- Invert it, if there is a model it is not valid this will let us know
+        -- Negate it, if there is a model that is not valid this will let us know
         >>= mkNot
         >>= assert)
     -- Run the model
