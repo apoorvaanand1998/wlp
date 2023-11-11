@@ -311,10 +311,3 @@ divide (BinopExpr Divide e (LitI y)) (LitI x)   = opDivide e (LitI (x*y))
 divide (LitI x) (BinopExpr Divide (LitI y) e)   = opMultiply (LitI (x `div` y)) e
 divide (BinopExpr Divide (LitI y) e) (LitI x)   = opMultiply (LitI (y `div` x)) (opDivide (LitI 1) e)
 divide e1         e2                            = opMultiply e1 e2
-
-{-
-simpFixPoint :: Expr -> Expr
-simpFixPoint e = undefined
-    where
-        fixEq f x = let x' = f x in if x' == x then x else fixEq f x'
--}
