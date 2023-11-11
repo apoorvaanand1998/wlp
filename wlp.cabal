@@ -34,7 +34,6 @@ executable wlp
         Verification,
         WLP,
         Utils,
-        MyVerification,
         VerificationResult
     -- other-extensions:
     build-depends:
@@ -45,7 +44,8 @@ executable wlp
         optparse-applicative ^>= 0.17,
         recursion-schemes ^>= 5.2.2.2,
         z3 ^>= 408.2,
-        ansi-terminal ^>= 0.11.0
+        ansi-terminal ^>= 0.11,
+        MemoTrie ^>= 0.6.9
     hs-source-dirs:   src
     default-language: GHC2021
     main-is:          Main.hs

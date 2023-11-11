@@ -5,14 +5,10 @@ module Simplify where
 import GCLParser.GCLDatatype
 import Prelude hiding (and, or)
 import Utils (countAtoms)
-import qualified Data.Map as M
+import Data.MemoTrie (memo)
 
-memoSimplify :: M.Map Expr Expr -> Expr -> (M.Map Expr Expr, Expr)
-memoSimplify m e =
-    let
-        def = simplifyAll e
-    in
-        (M.insertWith (\_ x -> x) e def m, M.findWithDefault def e m)
+memoSimplify :: Expr -> Expr
+memoSimplify = memo simplifyAll
 
 simplifyAll :: Expr -> Expr
 simplifyAll (Parens e)   = simplifyAll e
