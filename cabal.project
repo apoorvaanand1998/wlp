@@ -2,8 +2,8 @@ packages: .
 
 source-repository-package
   type: git
-  location: https://github.com/wooshrow/gclparser.git
-  tag: 44f4f58a26192022fc3541c724614c8122b2643f
+  location: https://github.com/apoorvaanand1998/gclparser.git
+  tag: e4b26165938d4b53c157c9b64e372da3bf0e98c6
 
 package recursion-schemes
   flags: -template-haskell

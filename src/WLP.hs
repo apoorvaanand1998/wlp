@@ -105,8 +105,3 @@ verify vars pre (Branch t1 t2) = (liftA2 Simplify.and `on` verify vars pre) t1 t
 
 satisfiable :: Expr -> Bool
 satisfiable = const True -- todo: error "some z3 magic"
-
-
-
-atoms :: Expr -> Int
-atoms = const 1
