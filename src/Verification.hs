@@ -141,7 +141,7 @@ convert expr = case expr of
       where
         e1' = BinopExpr And g e1
         e2' = BinopExpr And (OpNeg g) e2
-        e' = BinopExpr Or e1' e2'
+        e'  = BinopExpr Or e1' e2'
     NewStore _ -> undefined
     Dereference _ -> undefined
 

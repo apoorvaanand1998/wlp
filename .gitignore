@@ -2,3 +2,5 @@ dist*/
 *.txt
 #*
 *~
+*.xopp
+cabal.project.local

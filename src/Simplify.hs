@@ -1,8 +1,30 @@
 {-# OPTIONS_GHC -Wno-unused-matches #-}
+
 module Simplify where
 
 import GCLParser.GCLDatatype
 import Prelude hiding (and, or)
+import Utils (countAtoms)
+import Data.MemoTrie (memo)
+
+memoSimplify :: Expr -> Expr
+memoSimplify = memo simplifyAll
+
+simplifyAll :: Expr -> Expr
+simplifyAll (Parens e)   = simplifyAll e
+simplifyAll (OpNeg e)    = neg e
+simplifyAll (Forall s e) = Forall s (simplifyAll e)
+simplifyAll (Exists s e) = Exists s (simplifyAll e)
+simplifyAll be@(BinopExpr b e1 e2) = case b of
+    And         -> and e1 e2
+    Or          -> or e1 e2
+    Implication -> implies e1 e2
+    Minus       -> minus e1 e2
+    Plus        -> plus e1 e2
+    Multiply    -> multiply e1 e2
+    Divide      -> divide e1 e2
+    other       -> be
+simplifyAll x = x
 
 and :: Expr -> Expr -> Expr
 and (LitB False) _ = LitB False
@@ -13,12 +35,13 @@ and e1 e@(BinopExpr Or e2 _) = if e1 == e2 then e1 else opAnd e1 e
 and e1 e2 
     | e1 == e2         = e1
     | fst (dist e1 e2) = snd (dist e1 e2)
-    | fst (lt e1 e2) = snd (lt e1 e2)
-    | fst (gt e1 e2) = snd (gt e1 e2)
-    | fst (lte e1 e2) = snd (lte e1 e2)
-    | fst (gte e1 e2) = snd (gte e1 e2)
-    | fst (eql e1 e2) = snd (eql e1 e2)
-    | otherwise       = opAnd e1 e2
+    | fst (lt e1 e2)   = snd (lt e1 e2)
+    | fst (gt e1 e2)   = snd (gt e1 e2)
+    | fst (lte e1 e2)  = snd (lte e1 e2)
+    | fst (gte e1 e2)  = snd (gte e1 e2)
+    | fst (eql e1 e2)  = snd (eql e1 e2)
+    | fst (rAnd e1 e2) = snd (rAnd e1 e2)
+    | otherwise        = opAnd e1 e2
     where      
         dist :: Expr -> Expr -> (Bool, Expr)
         dist (BinopExpr Or x1 y1) (BinopExpr Or x2 y2) 
@@ -116,6 +139,27 @@ and e1 e2
             | otherwise = dflt ie1 ie2
         eql ie1 ie2     = dflt ie1 ie2
 
+        -- Dynamic Programming and Canonical Boolean Representation is hard
+        -- Going with this simple, greedy (Not necessarily the best) algorithm
+        rAnd :: Expr -> Expr -> (Bool, Expr)
+        rAnd ie1@(BinopExpr And x1 x2) ie2@(BinopExpr And y1 y2) =
+            let
+                poss = [and (and x1 x2) (and y1 y2),
+                        and (and x1 y1) (and x2 y2),
+                        and (and x1 y2) (and x2 y1)]
+                possSize = map countAtoms poss
+                pps = zip poss possSize
+
+                -- f :: a -> b -> b
+                f :: (Expr, Int) -> (Expr, Int) -> (Expr, Int)
+                f x@(e, i) y@(de, di) = if i < di then x else y
+
+                d = snd $ dflt ie1 ie2
+                folded = foldr f (d, countAtoms d) pps
+            in
+                (True, fst folded)
+        rAnd ie1 ie2 = dflt ie1 ie2
+
 or :: Expr -> Expr -> Expr
 or (LitB True) _   = LitB True
 or _ (LitB True)   = LitB True
@@ -129,6 +173,7 @@ or e1 e2
     | fst (gt e1 e2)   = snd (gt e1 e2)
     | fst (lte e1 e2)  = snd (lte e1 e2)
     | fst (gte e1 e2)  = snd (gte e1 e2)
+    | fst (rOr e1 e2)  = snd (rOr e1 e2)
     | otherwise        = opOr e1 e2
     where
         dist :: Expr -> Expr -> (Bool, Expr)
@@ -174,6 +219,25 @@ or e1 e2
             = gt (opGreaterThan (Var x) (LitI (i-1))) (opGreaterThan (Var y) (LitI (j-1)))
         gte ie1 ie2
             = dflt ie1 ie2
+
+        rOr :: Expr -> Expr -> (Bool, Expr)
+        rOr ie1@(BinopExpr Or x1 x2) ie2@(BinopExpr Or y1 y2) =
+            let
+                poss = [or (or x1 x2) (or y1 y2),
+                        or (or x1 y1) (or x2 y2),
+                        or (and x1 y2) (or x2 y1)]
+                possSize = map countAtoms poss
+                pps = zip poss possSize
+
+                -- f :: a -> b -> b
+                f :: (Expr, Int) -> (Expr, Int) -> (Expr, Int)
+                f x@(e, i) y@(de, di) = if i < di then x else y
+
+                d = snd $ dflt ie1 ie2
+                folded = foldr f (d, countAtoms d) pps
+            in
+                (True, fst folded)
+        rOr ie1 ie2 = dflt ie1 ie2
 
 neg :: Expr -> Expr
 neg (OpNeg e)    = e
