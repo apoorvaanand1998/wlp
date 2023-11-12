@@ -1,5 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE BlockArguments #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Verification where
 
@@ -16,9 +17,12 @@ import Data.Maybe (isJust, fromJust)
 import GCLParser.GCLDatatype
 import System.CPUTime (getCPUTime)
 import Z3.Monad hiding (Opts, local)
+import System.IO.Unsafe (unsafePerformIO)
 
 -- ^ A environment mapping variables to Z3 ASTs, each variable is stored as an @Int@
 type Env = Map String AST
+
+deriving instance Ord PrimitiveType
 
 -- We cant use lists since PrimitiveType does not implement Ord
 mkArraySorts :: Z3 [(PrimitiveType, Sort)]
@@ -30,13 +34,12 @@ mkArraySorts = do
         , (PTBool,) <$> mkArraySort intSort boolSort
         ]
 
--- ^ Takes a PrimitiveType and returns a Type
 toType :: PrimitiveType -> Type
 toType = PType
 
 getTypes :: Expr -> Map String Type
 getTypes = \case
-    Var v -> M.singleton v RefType
+    Var v -> M.singleton v (PType PTInt) -- assume all variables are integers
     LitI _ -> M.empty
     LitB _ -> M.empty
     LitNull -> M.empty
@@ -113,7 +116,7 @@ convert expr = case expr of
       where
         a' = convert a
         i' = convert i
-    OpNeg e -> mkUnaryMinus =<< e'
+    OpNeg e -> mkNot =<< e'
       where
         e' = convert e
     BinopExpr o lhs rhs -> join $ convertOp o <$> lhs' <*> rhs'
@@ -219,3 +222,9 @@ checkFeasible env p =
         >>= assert)
     -- Run the model
     *> check <&> (== Sat) & evalZ3
+
+isValid :: Expr -> Maybe String
+isValid e = unsafePerformIO $ checkValid (getTypes e) e
+
+isFeasible :: Expr -> Bool
+isFeasible e = unsafePerformIO $ checkFeasible (getTypes e) e

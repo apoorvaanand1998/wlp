@@ -4,19 +4,20 @@ import qualified GCLParser.GCLDatatype as GCLD
 import GCLParser.GCLDatatype (Expr)
 import Paths
 import Data.Map
-import qualified Simplify
-import Heuristics (someHeuristic)
+import Simplify (memoSimplify)
+import Heuristics (atomHeuristic)
 import Control.Monad.State (runState)
 import Transformers
 import Data.Function (on)
 import VerificationResult (Metric (..))
 import Control.Monad.Writer
+import Verification (isFeasible)
 
 wlp :: Statement -> Expr -> Expr
-wlp (SAssert e)         post = GCLD.BinopExpr GCLD.And e post
-wlp (SAssume e)         post = GCLD.BinopExpr GCLD.Implication e post
-wlp (SAssign varname e) post = GCLD.RepBy post (GCLD.Var varname) e
-wlp (SAAssign var i e)  post = GCLD.RepBy post (GCLD.Var var) (GCLD.RepBy (GCLD.Var var) i e)
+wlp (SAssert e)         post = memoSimplify (GCLD.opAnd e post)
+wlp (SAssume e)         post = memoSimplify $ GCLD.BinopExpr GCLD.Implication e post
+wlp (SAssign varname e) post = repBy $ GCLD.RepBy post (GCLD.Var varname) e
+wlp (SAAssign var i e)  post = repBy $ GCLD.RepBy post (GCLD.Var var) (GCLD.RepBy (GCLD.Var var) i e)
 
 -- function needs clean-up...if we have time
 repBy :: Expr -> Expr
@@ -77,31 +78,26 @@ repBy other                                 = other
 
 
 
-treeWLP :: PathTree -> (Expr, [Metric])
-treeWLP tree = runWriter $ verify mempty (GCLD.LitB True) tree
+treeWLP :: Int -> PathTree -> (Expr, [Metric])
+treeWLP h tree = runWriter $ verify h mempty (GCLD.LitB True) tree
 
 
 -- |This function is basically "treeWLP" but with feasibility check built-in
-verify :: Map String Expr -> Expr -> PathTree -> Writer [Metric] Expr
+verify :: Int ->  Map String Expr -> Expr -> PathTree -> Writer [Metric] Expr
 
 -- Ignore infeasible paths (unsatisfiable assumptions)
-verify _ pre _ | not (satisfiable pre) = tell [Path False] >> pure (GCLD.LitB True)
+verify _ _ pre _ | not (isFeasible pre) = tell [Path False] >> pure (GCLD.LitB True)
 
 -- Base case
-verify _ _ Terminate = tell [Path True] >> pure (GCLD.LitB True)
-verify _ _ Crash     = tell [Path True] >> pure (GCLD.LitB False)
-verify _ _ Prune     = tell [Path True] >> pure (GCLD.LitB True)
+verify _ _ _ Terminate = tell [Path True] >> pure (GCLD.LitB True)
+verify _ _ _ Crash     = tell [Path True] >> pure (GCLD.LitB False)
+verify _ _ _ Prune     = tell [Path True] >> pure (GCLD.LitB True)
 
 -- Depending on the heuristic, either check for feasibility first or calculate wp directly
-verify vars pre (Stmt s t)
-    | someHeuristic vars pre s = let (pre', vars') = runState (sp s pre) vars in
-                                 wlp s <$> verify vars' pre' t
-    | otherwise                = wlp s <$> verify mempty (GCLD.LitB True) t
+verify h vars pre (Stmt s t)
+    | atomHeuristic h vars pre s = let (pre', vars') = runState (sp s pre) vars in
+                                   wlp s <$> verify h vars' (memoSimplify pre') t
+    | otherwise                  = wlp s <$> verify h mempty (GCLD.LitB True) t
 
 -- Branches
-verify vars pre (Branch t1 t2) = (liftA2 Simplify.and `on` verify vars pre) t1 t2
-
-
-
-satisfiable :: Expr -> Bool
-satisfiable = const True -- todo: error "some z3 magic"
+verify h vars pre (Branch t1 t2) = memoSimplify <$> (liftA2 (GCLD.BinopExpr GCLD.And) `on` verify h vars pre) t1 t2

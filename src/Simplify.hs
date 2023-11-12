@@ -12,7 +12,7 @@ memoSimplify = memo simplifyAll
 
 simplifyAll :: Expr -> Expr
 simplifyAll (Parens e)   = simplifyAll e
-simplifyAll (OpNeg e)    = neg e
+simplifyAll (OpNeg e)    = neg (simplifyAll e)
 simplifyAll (Forall s e) = Forall s (simplifyAll e)
 simplifyAll (Exists s e) = Exists s (simplifyAll e)
 simplifyAll be@(BinopExpr b e1 e2) = case b of
@@ -240,10 +240,35 @@ or e1 e2
         rOr ie1 ie2 = dflt ie1 ie2
 
 neg :: Expr -> Expr
-neg (OpNeg e)    = e
+neg (Var _) = error "simplify: negation on var"
+neg (LitI _) = error "simplify: negation on LitI"
 neg (LitB True)  = LitB False
 neg (LitB False) = LitB True
-neg e            = OpNeg e
+neg LitNull = error "simplify: negation on null"
+neg (Parens e) = Parens (neg e)
+neg (ArrayElem _ _) = error "simplify: negation on array-elem"
+neg (OpNeg e)    = e
+neg (BinopExpr And e1 e2) = BinopExpr Or (neg e1) (neg e2)
+neg (BinopExpr Or e1 e2) = BinopExpr And (neg e1) (neg e2)
+neg (BinopExpr Implication e1 e2) = BinopExpr And e1 (neg e2)
+neg (BinopExpr LessThan e1 e2) = BinopExpr GreaterThanEqual e1 e2
+neg (BinopExpr LessThanEqual e1 e2) = BinopExpr GreaterThan e1 e2
+neg (BinopExpr GreaterThan e1 e2) = BinopExpr LessThanEqual e1 e2
+neg (BinopExpr GreaterThanEqual e1 e2) = BinopExpr LessThan e1 e2
+neg (BinopExpr Equal e1 e2) = BinopExpr Or (BinopExpr LessThan e1 e2) (BinopExpr GreaterThan e1 e2)
+neg (BinopExpr Minus e1 e2) = error "simplify: negation on minus"
+neg (BinopExpr Plus e1 e2) = error "simplify: negation on plus"
+neg (BinopExpr Multiply e1 e2) = error "simplify: negation on multiply"
+neg (BinopExpr Divide e1 e2) = error "simplify: negation on divide"
+neg (BinopExpr Alias e1 e2) = error "simplify: what is alias?"
+neg (Forall s e) = Exists s (neg e)
+neg (Exists s e) = Forall s (neg e)
+neg (SizeOf _) = error "simplify: negation on sizeof"
+neg (RepBy {}) = error "simplify: negation on repby"
+neg (Cond g e1 e2) = BinopExpr Or (BinopExpr And g (neg e1)) (BinopExpr And (neg g) (neg e2))
+neg (NewStore _) = error "simplify: negation on newstore"
+neg (Dereference _) = error "simplify: negation on dereference"
+
 
 implies :: Expr -> Expr -> Expr
 implies (LitB True)  e = e                         
@@ -255,7 +280,7 @@ implies e1 e2          = neg e1 `or` e2
 minus :: Expr -> Expr -> Expr
 minus (LitI x) (LitI y)                     = LitI (x-y)
 minus (LitI x) (BinopExpr Minus e (LitI y)) = opMinus (LitI (x+y)) e
-minus (BinopExpr Minus e (LitI y)) (LitI x) = opMinus e (LitI (y-x))
+minus (BinopExpr Minus e (LitI y)) (LitI x) = opMinus e (LitI (y+x))
 minus (LitI x) (BinopExpr Minus (LitI y) e) = opPlus (LitI (x-y)) e
 minus (BinopExpr Minus (LitI y) e) (LitI x) = opMinus (LitI (y-x)) e
 minus (LitI x) (BinopExpr Plus e (LitI y))  = opMinus (LitI (x-y)) e

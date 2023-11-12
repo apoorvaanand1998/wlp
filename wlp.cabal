@@ -25,7 +25,6 @@ common warnings
 executable wlp
     import:           warnings
     other-modules:
-        Feasibility,
         Heuristics,
         Options,
         Paths,
