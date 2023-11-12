@@ -12,7 +12,7 @@ import Data.Function ((&))
 import Data.Functor ((<&>))
 import Data.Map (Map)
 import qualified Data.Map as M
-import Data.Maybe (fromJust)
+import Data.Maybe (isJust, fromJust)
 import GCLParser.GCLDatatype
 import System.CPUTime (getCPUTime)
 import Z3.Monad hiding (Opts, local)
@@ -151,21 +151,54 @@ convert expr = case expr of
 verify :: Opts -> Program -> IO Bool
 verify ops program = do
     tStart <- getCPUTime
+
     -- Get program paths
     let
         tree = limitDepth maxDepth $ programTree program
-        paths = flatten tree
+        paths = linearize tree
+
+    -- Get a list of tuple of the expression to test and the types of the variables
     let
-        preds = map (\p -> (getTypes p, p)) paths
-    -- Check each path
+        preds = map ((,) =<< getTypes) paths
+
+    -- Check each path to check if they are valid
     results <- traverse (uncurry checkValid) preds
     tEnd <- getCPUTime
-    undefined
+
+    let
+        totalInspected = length results
+        totalInvalid = length $ filter isJust results
+
+    print ("Inspected " <> show totalInspected <> " paths")
+    print ("Where " <> show totalInspected <> " where invalid")
+
+    let
+        time :: Double
+        time = fromIntegral (tEnd - tStart) / 1e12
+
+    print ("Time elapsed " <> show time)
+
+    pure $ totalInvalid == 0
+
   where
     Opts { maxDepth } = ops
 
-flatten :: PathTree -> [Expr]
-flatten = undefined
+linearize :: PathTree -> [Expr]
+linearize = map go . linearize'
+  where
+    go = \case
+        SAssert e -> e
+        SAssume e -> e
+        SAssign _ e -> e
+        SAAssign _ _ e -> e
+
+linearize' :: PathTree -> [Statement]
+linearize' = \case
+    Terminate -> []
+    Crash -> []
+    Prune -> []
+    Stmt s t -> s : linearize' t
+    Branch t1 t2 -> linearize' t1 <> linearize' t2
 
 checkValid :: Map String Type -> Expr -> IO (Maybe String)
 checkValid env p =
