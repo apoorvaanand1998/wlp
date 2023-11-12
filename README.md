@@ -10,8 +10,17 @@
 
 2. (Enter your stuff here)
 
-3. (Enter your stuff here)
+3. Sem van Nieuwenhuizen (6213197, r.s.vannieuwenhuizen@students.uu.nl)
+
+- Option parsing
+- Z3 interopt and verification using z3
 
 ### Instructions 
 
-(How do I run this shit, enter that here)
+To run the program use the following command: 
+
+```bash
+cabal run wlp -- examples/swap.gcl
+```
+
+More options can be found by running `--help`
