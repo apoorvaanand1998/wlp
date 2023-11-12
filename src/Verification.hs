@@ -15,7 +15,6 @@ import GCLParser.GCLDatatype  (Expr(..), BinOp(..), PrimitiveType(..), Type(..))
 import System.CPUTime (getCPUTime)
 import Z3.Monad hiding (local)
 import System.IO.Unsafe (unsafePerformIO)
-import qualified Debug.Trace as Debug
 
 -- ^ A environment mapping variables to Z3 ASTs, each variable is stored as an @Int@
 type Env = Map String AST
@@ -114,7 +113,7 @@ convert expr = case expr of
       where
         a' = convert a
         i' = convert i
-    OpNeg e -> mkUnaryMinus =<< e'
+    OpNeg e -> mkNot =<< e'
       where
         e' = convert e
     BinopExpr o lhs rhs -> join $ convertOp o <$> lhs' <*> rhs'
@@ -179,5 +178,4 @@ isValid :: Expr -> Maybe String
 isValid e = unsafePerformIO $ checkValid (getTypes e) e
 
 isFeasible :: Expr -> Bool
-isFeasible e = Debug.trace ("Checking Feasibility of:\n" <> show e <> "\n\n")
-             $ unsafePerformIO $ checkFeasible (getTypes e) e
+isFeasible e = unsafePerformIO $ checkFeasible (getTypes e) e
