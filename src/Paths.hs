@@ -11,10 +11,10 @@ import qualified GCLParser.Parser as GCLP
 
 -- Probably need to annotate this eventually to have useful output
 data Statement
-    = SAssert Expr
-    | SAssume Expr
-    | SAssign String Expr
-    | SAAssign String Expr Expr
+    = SAssert !Expr
+    | SAssume !Expr
+    | SAssign !String !Expr
+    | SAAssign !String !Expr !Expr
 
 instance Show Statement where
     show (SAssert expr) = unwords ["ASSERT", show expr]
@@ -23,8 +23,8 @@ instance Show Statement where
     show (SAAssign arr idx expr) = show (AAssign arr idx expr)
 
 data PathTree = Terminate | Crash | Prune
-              | Stmt Statement PathTree
-              | Branch PathTree PathTree
+              | Stmt !Statement !PathTree
+              | Branch !PathTree !PathTree
 
 instance Show PathTree where
   show Terminate = "\n└─🛑"
