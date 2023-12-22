@@ -90,8 +90,6 @@ verify _ _ pre _ | not (isFeasible pre) = tell [Path False] >> pure (GCLD.LitB T
 
 -- Base case
 verify _ _ _ Terminate = tell [Path True] >> pure (GCLD.LitB True)
-verify _ _ _ Crash     = tell [Path True] >> pure (GCLD.LitB False)
-verify _ _ _ Prune     = tell [Path True] >> pure (GCLD.LitB True)
 
 -- Depending on the heuristic, either check for feasibility first or calculate wp directly
 verify h vars pre (Stmt s t)
