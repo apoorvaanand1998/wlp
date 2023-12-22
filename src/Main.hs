@@ -1,17 +1,16 @@
-{-# LANGUAGE RecordWildCards #-}
 module Main where
 
 import Options (Opts(..), getOpts)
 import System.CPUTime (getCPUTime)
 import qualified GCLParser.Parser as GCL
-import GCLParser.Parser
 import Paths (programTree, limitDepth)
 import Control.Monad (when)
-import GCLParser.GCLDatatype (Expr(LitB, OpNeg))
 import WLP (treeWLP)
-import Verification (verify)
+import Verification (counterExample)
 import VerificationResult (printLiveMetrics)
-import Verification (isFeasible)
+import Data.Map (Map)
+import qualified Data.Map as M
+import Data.List (intercalate)
 
 main :: IO ()
 main = do
@@ -30,9 +29,15 @@ main = do
     putStrLn "WLP:"
     print theWlp
 
-  case theWlp of
-    LitB True -> putStrLn "The program is correct for all inputs!"
-    _ -> putStrLn "The program is incorrect! todo: print counterexample"
+  case counterExample theWlp of
+    Nothing -> putStrLn "The program is correct for all inputs!"
+    Just output -> putStrLn $ "The program is incorrect! A counterexample: " <> showMap output
 
   end <- getCPUTime
-  putStrLn $ "Computation time: " <> show ((end - start) `div` 10^9) <> "ms"
+  putStrLn $ "Computation time: " <> show ((end - start) `div` 1_000_000_000) <> "ms"
+
+
+
+showMap :: (Show a) => Map String a -> String
+showMap e = "{" ++ stuff e ++ "}"
+  where stuff = intercalate ", " . map (\(k, v) -> k <> ": " <> show v) . M.toList

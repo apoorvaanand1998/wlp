@@ -3,9 +3,6 @@ module Paths (PathTree(..), Statement(..), programTree, limitDepth, singleton) w
 import Control.Monad.State
 import Data.List (intercalate)
 import GCLParser.GCLDatatype
--- import GCLParser.Parser
-import Data.List (intercalate)
-import Control.Monad.State
 import Data.Function (on)
 import qualified GCLParser.Parser as GCLP
 
@@ -31,11 +28,11 @@ instance Show PathTree where
   show Crash = "\n└─💥"
   show Prune = "\n└─✂️"
   show (Stmt s t) = "\n" ++ show s ++ show t
-  show (Branch t1 t2) = "\n├── " ++ intercalate "\n│   " (tail $ lines $ show t1)
-                     ++ "\n└── " ++ intercalate "\n    " (tail $ lines $ show t2)
+  show (Branch t1 t2) = "\n├── " ++ intercalate "\n│   " (drop 1 $ lines $ show t1)
+                     ++ "\n└── " ++ intercalate "\n    " (drop 1 $ lines $ show t2)
 
 limitDepth :: Int -> PathTree -> PathTree
-limitDepth 0 _ = Stmt (SAssert $ LitB False) Prune
+limitDepth 0 _ = Stmt (SAssert $ LitB True) Prune
 limitDepth _ Terminate = Terminate
 limitDepth _ Crash = Crash
 limitDepth _ Prune = Prune
