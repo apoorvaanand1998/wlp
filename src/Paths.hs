@@ -1,10 +1,13 @@
-module Paths (PathTree(..), Statement(..), programTree, limitDepth, singleton) where
+module Paths (PathTree(..), Statement(..), programTree, singleton) where
 
 import Control.Monad.State
+import Control.Monad.Writer
+import Control.Monad.Reader
 import Data.List (intercalate)
 import GCLParser.GCLDatatype
 import Data.Function (on)
 import qualified GCLParser.Parser as GCLP
+import Options (Opts (maxDepth))
 
 -- Probably need to annotate this eventually to have useful output
 data Statement
@@ -29,14 +32,9 @@ instance Show PathTree where
   show (Branch t1 t2) = "\n├── " ++ intercalate "\n│   " (drop 1 $ lines $ show t1)
                      ++ "\n└── " ++ intercalate "\n    " (drop 1 $ lines $ show t2)
 
-limitDepth :: Int -> PathTree -> PathTree
-limitDepth 0 _ = Stmt (SAssert $ LitB True) Terminate
-limitDepth _ Terminate = Terminate
-limitDepth k (Stmt s t) = Stmt s (limitDepth (k-1) t)
-limitDepth k (Branch t1 t2) = Branch (limitDepth (k-1) t1) (limitDepth (k-1) t2)
-
-programTree :: Program -> PathTree
-programTree Program { input, output, stmt } = evalState (tree (Block (input ++ output) stmt)) 0
+  
+programTree :: Opts -> Program -> (PathTree, [PathTree])
+programTree opts Program { input, output, stmt } = runWriter (evalStateT (runReaderT (tree (Block (input ++ output) stmt)) opts) 0)
 
 (|>) :: PathTree -> PathTree -> PathTree
 Terminate |> t2 = t2
@@ -46,44 +44,62 @@ Branch t1 t2 |> t3 = Branch (t1 |> t3) (t2 |> t3)
 singleton :: Statement -> PathTree
 singleton s = Stmt s Terminate
 
-tree :: Stmt -> State Int PathTree
+tree :: Stmt -> ReaderT Opts (StateT Int (Writer [PathTree])) PathTree
 tree Skip = pure Terminate
 tree (Assert cond) = pure $ singleton (SAssert cond)
 tree (Assume cond) = pure $ singleton (SAssume cond)
 tree (Assign var expr) = pure $ singleton (SAssign var expr)
 tree (AAssign arr idx expr) = pure $ singleton (SAAssign arr idx expr)
 tree (DrefAssign _var _expr) = error "out of scope?"
+
+-- while loop with invariant
+tree (Seq (Assert inv) (While guard body)) = do
+  tbody <- pruned (tree body)
+  tell [singleton (SAssume inv) |> singleton (SAssume guard) |> tbody |> singleton (SAssert inv)]
+  pure $ singleton (SAssert inv)
+tree (Seq (Assert inv) (Seq (While guard body) rest)) = do
+  t1 <- pruned (tree (Seq (Assert inv) (While guard body)))
+  t2 <- pruned (tree rest)
+  pure (t1 |> t2)
+
 tree (Seq expr1 expr2) = do
-    t1 <- tree expr1
-    t2 <- tree expr2
+    t1 <- pruned (tree expr1)
+    t2 <- pruned (tree expr2)
     pure (t1 |> t2)
 tree (IfThenElse guard true false) = do
-  ttrue  <- (singleton (SAssume guard) |>)         <$> tree true
-  tfalse <- (singleton (SAssume (OpNeg guard)) |>) <$> tree false
+  ttrue  <- (singleton (SAssume guard) |>)         <$> pruned (tree true)
+  tfalse <- (singleton (SAssume (OpNeg guard)) |>) <$> pruned (tree false)
   pure (Branch ttrue tfalse)
 tree (While guard body) = do
-  tbody <- tree body
-  tloop <- tree (While guard body)
+  tbody <- pruned (tree body)
+  tloop <- pruned (tree (While guard body))
   let ttrue  = singleton (SAssume guard) |> tbody |> tloop
   let tfalse = singleton (SAssume (OpNeg guard))
   pure (Branch ttrue tfalse)
-tree (Block [] stmt) = tree stmt
+tree (Block [] stmt) = pruned (tree stmt)
 tree (Block (VarDeclaration s _:xs) stmt) = do
   n <- fresh
-  t <- tree (Block xs stmt)
+  t <- pruned (tree (Block xs stmt))
   pure (rename s n t)
 tree (TryCatch _catch _try _expr) = error "out of scope?"
 
-fresh :: State Int String
+fresh :: MonadState Int m => m String
 fresh = do
     n <- gets varName
     modify succ
     pure n
 
-
-
 varName :: Int -> String
 varName i = 'x' : map (("₀₁₂₃₄₅₆₈₉" !!) . read . pure) (show i)
+
+
+
+pruned :: MonadReader Opts m => m PathTree -> m PathTree
+pruned mtree = do
+  k <- asks maxDepth
+  if k > 0
+    then local (\opts -> opts { maxDepth = pred k }) mtree
+    else pure Terminate
 
 
 
