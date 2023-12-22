@@ -4,18 +4,12 @@
 
 module Verification where
 
-import Options
-import Paths
-
 import Control.Monad (join)
 import Control.Monad.Reader (ReaderT(..), asks, local)
-import Data.Function ((&))
-import Data.Functor ((<&>))
 import Data.Map (Map)
 import qualified Data.Map as M
-import Data.Maybe (isJust, fromJust)
+import Data.Maybe (isJust, fromJust, isNothing)
 import GCLParser.GCLDatatype
-import System.CPUTime (getCPUTime)
 import Z3.Monad hiding (Opts, local)
 import System.IO.Unsafe (unsafePerformIO)
 
@@ -151,80 +145,22 @@ convert expr = case expr of
     NewStore _ -> undefined
     Dereference _ -> undefined
 
-verify :: Opts -> Program -> IO Bool
-verify ops program = do
-    tStart <- getCPUTime
+satisfyZ3 :: Expr -> Z3 (Result, Maybe (Map String Integer))
+satisfyZ3 p = do
+    env <- mkEnv (getTypes p)
+    ast <- runReaderT (convert p) env
+    assert ast
+    res <- withModel $ \m -> sequence <$> traverse (evalInt m) env
+    return (join <$> res)
 
-    -- Get program paths
-    let
-        tree = limitDepth maxDepth $ programTree program
-        paths = linearize tree
+satisfy :: Expr -> Maybe (Map String Integer)
+satisfy = snd . unsafePerformIO . evalZ3 . satisfyZ3
 
-    -- Get a list of tuple of the expression to test and the types of the variables
-    let
-        preds = map ((,) =<< getTypes) paths
-
-    -- Check each path to check if they are valid
-    results <- traverse (uncurry checkValid) preds
-    tEnd <- getCPUTime
-
-    let
-        totalInspected = length results
-        totalInvalid = length $ filter isJust results
-
-    print ("Inspected " <> show totalInspected <> " paths")
-    print ("Where " <> show totalInspected <> " where invalid")
-
-    let
-        time :: Double
-        time = fromIntegral (tEnd - tStart) / 1e12
-
-    print ("Time elapsed " <> show time)
-
-    pure $ totalInvalid == 0
-
-  where
-    Opts { maxDepth } = ops
-
-linearize :: PathTree -> [Expr]
-linearize = map go . linearize'
-  where
-    go = \case
-        SAssert e -> e
-        SAssume e -> e
-        SAssign _ e -> e
-        SAAssign _ _ e -> e
-
-linearize' :: PathTree -> [Statement]
-linearize' = \case
-    Terminate -> []
-    Crash -> []
-    Prune -> []
-    Stmt s t -> s : linearize' t
-    Branch t1 t2 -> linearize' t1 <> linearize' t2
-
-checkValid :: Map String Type -> Expr -> IO (Maybe String)
-checkValid env p =
-    (mkEnv env
-        -- Convert it to a Z3 AST
-        >>= runReaderT (convert p)
-        -- Negate it, if there is a model that is not valid this will let us know
-        >>= mkNot
-        >>= assert)
-    -- Run the model
-    *> withModel modelToString <&> snd & evalZ3
-
-checkFeasible :: Map String Type -> Expr -> IO Bool
-checkFeasible env p =
-    (mkEnv env
-        -- Convert it to a Z3 AST
-        >>= runReaderT (convert p)
-        >>= assert)
-    -- Run the model
-    *> check <&> (== Sat) & evalZ3
-
-isValid :: Expr -> Maybe String
-isValid e = unsafePerformIO $ checkValid (getTypes e) e
+isValid :: Expr -> Bool
+isValid = isNothing . satisfy . OpNeg
 
 isFeasible :: Expr -> Bool
-isFeasible e = unsafePerformIO $ checkFeasible (getTypes e) e
+isFeasible = isJust . satisfy
+
+counterExample :: Expr -> Maybe (Map String Integer)
+counterExample = satisfy . OpNeg

@@ -12,7 +12,6 @@ import Data.Function (on)
 import VerificationResult (Metric (..))
 import Control.Monad.Writer
 import Verification (isFeasible)
-import Z3.Base (simplify)
 
 wlp :: Statement -> Expr -> Expr
 wlp (SAssert e)         post = memoSimplify (GCLD.opAnd e post)
