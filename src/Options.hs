@@ -2,11 +2,10 @@ module Options where
 
 import Options.Applicative
 
-import Heuristics (Heuristic(..))
-
 data Opts = Opts
     { maxDepth :: Int
     , heuristic :: Int
+    , invariants :: Bool
     , simply :: Bool
     , showTree :: Bool
     , showWlp :: Bool
@@ -18,7 +17,7 @@ parser =
     Opts
     <$> option auto
         ( long "max-depth"
-        <> value 50
+        <> value 10
         <> short 'K'
         <> help "Maximum depth of program paths" )
     <*> option auto
@@ -26,6 +25,10 @@ parser =
         <> value 100
         <> short 'H'
         <> help "Heuristic level (0 to turn off)" )
+    <*> switch
+        ( long "invariants"
+        <> short 'I'
+        <> help "Check invariants" )
     <*> switch
         ( long "simply"
         <> short 'S'

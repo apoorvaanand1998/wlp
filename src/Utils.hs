@@ -1,8 +1,6 @@
 module Utils (countAtoms) where
 
-import qualified Paths as P
 import qualified GCLParser.GCLDatatype as GCLD
-import GCLParser.GCLDatatype (Stmt)
 
 -- not converting first to dnf/cnf because that's a np-hard problem apparently
 countAtoms :: GCLD.Expr -> Int
