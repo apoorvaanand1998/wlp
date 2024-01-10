@@ -12,13 +12,16 @@ import Data.Function (on)
 import VerificationResult (Metric (..))
 import Control.Monad.Writer
 import Verification (isFeasible)
-
-
+import Utils (countAtoms)
 
 
 
 treeWLP :: Int -> PathTree -> (Expr, [Metric])
-treeWLP h tree = runWriter $ verify h mempty (GCLD.LitB True) tree
+treeWLP h tree = runWriter $ do
+    expr <- verify h mempty (GCLD.LitB True) tree
+    tell [Formula (countAtoms expr)]
+    return expr
+
 
 
 -- |This function is basically "treeWLP" but with feasibility check built-in
