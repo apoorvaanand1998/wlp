@@ -11,7 +11,6 @@ import VerificationResult (printLiveMetrics)
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.List (intercalate)
-import GCLParser.GCLDatatype (Stmt (..), Program (..))
 import Data.Foldable (traverse_)
 
 main :: IO ()
