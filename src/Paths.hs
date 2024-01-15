@@ -9,7 +9,8 @@ import Data.Function (on)
 import qualified GCLParser.Parser as GCLP
 import Options (Opts (maxDepth))
 
--- Probably need to annotate this eventually to have useful output
+
+
 data Statement
     = SAssert !Expr
     | SAssume !Expr
@@ -83,6 +84,8 @@ tree (Block (VarDeclaration s _:xs) stmt) = do
   pure (rename s n t)
 tree (TryCatch _catch _try _expr) = error "out of scope?"
 
+
+
 fresh :: MonadState Int m => m String
 fresh = do
     n <- gets varName
@@ -90,9 +93,7 @@ fresh = do
     pure n
 
 varName :: Int -> String
-varName i = 'x' : map (("₀₁₂₃₄₅₆₈₉" !!) . read . pure) (show i)
-
-
+varName i = 'x' : map (("₀₁₂₃₄₅₆₇₈₉" !!) . read . pure) (show i)
 
 pruned :: MonadReader Opts m => m PathTree -> m PathTree
 pruned mtree = do
@@ -106,8 +107,6 @@ pruned mtree = do
 class Renamable a where rename :: String -> String -> a -> a
 
 instance Renamable PathTree where
-  -- problem: when the original program contains any variable with a number as a name...
-  -- does that happen?
   rename _ _ Terminate = Terminate
   rename new old (Stmt s t) = Stmt (rename new old s) (rename new old t)
   rename new old (Branch t1 t2) = (Branch `on` rename new old) t1 t2

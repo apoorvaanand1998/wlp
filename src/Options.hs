@@ -2,6 +2,8 @@ module Options where
 
 import Options.Applicative
 
+
+
 data Opts = Opts
     { maxDepth :: Int
     , heuristic :: Int

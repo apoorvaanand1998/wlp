@@ -33,9 +33,3 @@ boolean GCLD.And = True
 boolean GCLD.Or  = True
 boolean GCLD.Implication = True
 boolean _ = False
-
-
-
-showExpr :: GCLD.Expr -> String
-showExpr (GCLD.BinopExpr op e1 e2) = " B: " ++ show op ++ " {1$" ++ showExpr e1 ++ "$1} " ++ " {2$" ++ showExpr e2 ++ "$2}"
-showExpr e                         = " F: " ++ show e

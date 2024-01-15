@@ -5,13 +5,15 @@ import System.CPUTime (getCPUTime)
 import qualified GCLParser.Parser as GCL
 import Paths (programTree)
 import Control.Monad (when)
-import WLP (treeWLP)
-import Verification (counterExample)
-import VerificationResult (printLiveMetrics)
+import Verification (treeWLP)
+import Satisfiability (counterExample)
+import Metrics (printLiveMetrics)
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.List (intercalate)
 import Data.Foldable (traverse_)
+
+
 
 main :: IO ()
 main = do

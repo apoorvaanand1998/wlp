@@ -30,10 +30,10 @@ executable wlp
         Paths,
         Simplify,
         Transformers,
+        Satisfiability,
         Verification,
-        WLP,
         Utils,
-        VerificationResult
+        Metrics
     -- other-extensions:
     build-depends:
         base ^>=4.18.0.0,

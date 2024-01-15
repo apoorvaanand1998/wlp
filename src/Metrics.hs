@@ -1,9 +1,8 @@
-module VerificationResult where
+module Metrics where
 
-import GCLParser.GCLDatatype (Expr)
-import System.Console.ANSI
-import Control.Concurrent
-import Data.List (intercalate)
+import qualified System.Console.ANSI as ANSI
+
+
 
 -- Metrics to be collected during verification
 data Metric = Path { feasible :: Bool } -- for the total number of (infeasible) paths
@@ -32,7 +31,7 @@ instance Show IntermediateResult where
     showList [x] = showString (show x)
     showList (x:xs) = showString (show x)
                     . shows (length (show $ head xs))
-                    . showString (cursorUpLineCode 3 <> clearFromCursorToScreenEndCode)
+                    . showString (ANSI.cursorUpLineCode 3 <> ANSI.clearFromCursorToScreenEndCode)
                     . showList xs
 
 every :: Int -> [a] -> [a]

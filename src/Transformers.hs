@@ -25,7 +25,7 @@ sp (SAssign x e) p = do
 sp (SAAssign x i e) p = do
   e' <- eval e
   arr <- gets $ findWithDefault (ArrayElem (Var x) i) x
-  modify (insert x (RepBy arr i e')) -- probably needs simplification
+  modify (insert x (RepBy arr i e'))
   pure p
 
 eval :: Expr -> State (Map String Expr) Expr
@@ -53,18 +53,15 @@ eval (Dereference x)    = pure $ Dereference x
 (<|) :: Expr -> Statement -> State (Map String Expr) Expr
 (<|) = flip sp
 
--- function needs clean-up...if we have time
 repBy :: Expr -> Expr
--- AAssign
--- arr[i] := e
 repBy (GCLD.RepBy var@(GCLD.Var _) _ (GCLD.RepBy {})) = var
 repBy (GCLD.RepBy li@(GCLD.LitI _) _ (GCLD.RepBy {})) = li
 repBy (GCLD.RepBy lb@(GCLD.LitB _) _ (GCLD.RepBy {})) = lb
 repBy (GCLD.RepBy ln@GCLD.LitNull  _ (GCLD.RepBy {})) = ln
 repBy (GCLD.RepBy (GCLD.Parens pe) v (GCLD.RepBy _ i e)) = simplifyAll $ repBy (GCLD.RepBy pe v (GCLD.RepBy v i e))
-repBy (GCLD.RepBy (GCLD.ArrayElem ae ai) v (GCLD.RepBy _ i e)) = if v == ae && i == ai -- could crash if v/ae or i/ai need to be evaluated to be equal
+repBy (GCLD.RepBy (GCLD.ArrayElem ae ai) v (GCLD.RepBy _ i e)) = if v == ae && i == ai
                                                                  then e
-                                                                 else GCLD.ArrayElem ae ai -- but going with this simple approach for now as suggested
+                                                                 else GCLD.ArrayElem ae ai
 repBy (GCLD.RepBy (GCLD.OpNeg ne) v (GCLD.RepBy _ i e))  = GCLD.OpNeg (simplifyAll (repBy (GCLD.RepBy ne v (GCLD.RepBy v i e))))
 repBy (GCLD.RepBy (GCLD.BinopExpr op be1 be2) v (GCLD.RepBy _ i e)) = GCLD.BinopExpr op (simplifyAll (repBy (GCLD.RepBy be1 v (GCLD.RepBy v i e))))
                                                                                         (simplifyAll (repBy (GCLD.RepBy be2 v (GCLD.RepBy v i e))))
@@ -81,14 +78,13 @@ repBy (GCLD.RepBy (GCLD.RepBy re1 re2 re3) v (GCLD.RepBy _ i e)) = repBy (GCLD.R
 repBy (GCLD.RepBy (GCLD.Cond g e1 e2) v (GCLD.RepBy _ i e)) = GCLD.Cond (simplifyAll (repBy (GCLD.RepBy g v (GCLD.RepBy v i e))))
                                                                         (simplifyAll (repBy (GCLD.RepBy e1 v (GCLD.RepBy v i e))))
                                                                         (simplifyAll (repBy (GCLD.RepBy e2 v (GCLD.RepBy v i e))))
---Assign
 repBy (GCLD.RepBy ve@(GCLD.Var varExpr) (GCLD.Var v) e) = if varExpr == v then e else ve
 repBy (GCLD.RepBy li@(GCLD.LitI _) _ _) = li
 repBy (GCLD.RepBy lb@(GCLD.LitB _) _ _) = lb
 repBy (GCLD.RepBy ln@GCLD.LitNull _ _)  = ln
 repBy (GCLD.RepBy (GCLD.Parens pe) v e) = simplifyAll (repBy (GCLD.RepBy pe v e))
 repBy (GCLD.RepBy (GCLD.ArrayElem ae ai) v e) = GCLD.ArrayElem (simplifyAll (repBy (GCLD.RepBy ae v e)))
-                                                               (simplifyAll (repBy (GCLD.RepBy ai v e))) -- i think
+                                                               (simplifyAll (repBy (GCLD.RepBy ai v e)))
 repBy (GCLD.RepBy (GCLD.OpNeg ne) v e)  = GCLD.OpNeg (simplifyAll (repBy (GCLD.RepBy ne v e)))
 repBy (GCLD.RepBy (GCLD.BinopExpr op be1 be2) v e) = GCLD.BinopExpr op (simplifyAll (repBy (GCLD.RepBy be1 v e)))
                                                                        (simplifyAll (repBy (GCLD.RepBy be2 v e)))
