@@ -6,6 +6,7 @@
 
 pullUp(step:int , a:[]int | b:[]int) {
    // N is an experiment parameter
+   N := 5;
    assume #a>=2 && #a=N && step>0 ;
 
    if a[0] >= a[1]

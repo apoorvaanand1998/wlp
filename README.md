@@ -7,7 +7,8 @@
     - WLP
     - Simplification
     - Utils
-
+    - Mutate
+    
 2. Wilco Verhoef (5941466, a.w.verhoef@students.uu.nl)
 
     - Path/tree generation

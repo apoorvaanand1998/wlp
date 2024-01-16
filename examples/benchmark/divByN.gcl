@@ -8,6 +8,7 @@ divByN(x:int | divisible:bool) {
   assume x>1 ;
   var k:int {
     k := 1 ;
+    N := 5 ;
     divisible := false ;
     while k<=x && ~divisible do {
       //assert divisible

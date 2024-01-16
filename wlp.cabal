@@ -33,7 +33,8 @@ executable wlp
         Satisfiability,
         Verification,
         Utils,
-        Metrics
+        Metrics,
+        Mutate
     -- other-extensions:
     build-depends:
         base ^>=4.18.0.0,

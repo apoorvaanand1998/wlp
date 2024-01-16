@@ -2,8 +2,6 @@ module Utils (countAtoms) where
 
 import qualified GCLParser.GCLDatatype as GCLD
 
-
-
 countAtoms :: GCLD.Expr -> Int
 countAtoms (GCLD.Parens e)   = countAtoms e
 countAtoms (GCLD.OpNeg e)    = countAtoms e
