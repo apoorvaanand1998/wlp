@@ -6,7 +6,6 @@ import Control.Monad.Reader
 import Data.List (intercalate)
 import GCLParser.GCLDatatype
 import Data.Function (on)
-import qualified GCLParser.Parser as GCLP
 import Options (Opts (maxDepth))
 
 
@@ -120,4 +119,21 @@ instance Renamable Statement where
                                          | otherwise  = SAAssign arr idx $ rename new old expr
 
 instance Renamable Expr where
-  rename = GCLP.rename
+  rename new old (Parens e) = Parens (rename new old e)
+  rename new old (OpNeg e) = OpNeg (rename new old e)
+  rename new old (BinopExpr opr e1 e2) = (BinopExpr opr `on` rename new old) e1 e2
+  rename new old (Forall x e) | x == old  = Forall x e
+                              | otherwise = Forall x (rename new old e)
+  rename new old (Exists x e) | x == old  = Exists x e
+                              | otherwise = Exists x (rename new old e)
+  rename new old (ArrayElem arr idx) = (ArrayElem `on` rename new old) arr idx
+  rename new old (Var x) | x == old  = Var new
+                         | otherwise = Var x
+  rename new old (SizeOf e) = SizeOf (rename new old e)
+  rename new old (RepBy e1 e2 e3) = RepBy (rename new old e1) (rename new old e2) (rename new old e3)
+  rename new old (Cond e1 e2 e3) = Cond (rename new old e1) (rename new old e2) (rename new old e3)
+  rename new old (NewStore e) = NewStore (rename new old e)
+  rename _ _ (Dereference x) = Dereference x
+  rename _ _ (LitI n) = LitI n
+  rename _ _ (LitB b) = LitB b
+  rename _ _ LitNull = LitNull
