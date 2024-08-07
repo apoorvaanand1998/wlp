@@ -1,5 +1,6 @@
 # `wlp`-based Bounded Symbolic Verification
 
+The spec can be found [here](https://github.com/apoorvaanand1998/wlp/blob/main/PVproject_2122.pdf).
 ### Work Division
 
 1. Apoorva Anand (2037610, a.apoorvaanand@students.uu.nl)
